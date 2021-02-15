@@ -5,3 +5,16 @@ services:
     volumes:
       - ./:/code
       - ./data:/data
+    environment:
+      - KBC_URL
+      - KBC_RUNID
+      - STORAGE_API_TOKEN
+      - SYNAPSE_PORT
+      - SYNAPSE_SERVER_NAME
+      - SYNAPSE_UID
+      - SYNAPSE_PWD
+      - SYNAPSE_SQL_SERVER_NAME
+      - SYNAPSE_DW_SERVER_NAME
+      - SYNAPSE_SERVER
+      - SYNAPSE_DATABASE
+
