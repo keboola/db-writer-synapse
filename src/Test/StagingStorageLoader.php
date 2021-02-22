@@ -2,8 +2,10 @@
 
 namespace Keboola\DbWriter\Synapse\Test;
 
+use RuntimeException;
 use Keboola\Csv\CsvFile;
 use Keboola\StorageApi\Client;
+use Keboola\StorageApi\Options\GetFileOptions;
 
 class StagingStorageLoader
 {
@@ -29,14 +31,12 @@ class StagingStorageLoader
     public function upload(string $tableId): array
     {
         $filePath = $this->getInputCsv($tableId);
-        $bucketId = 'in.c-test-wr-db-synapse';
-        if (!$this->storageApi->bucketExists($bucketId)) {
-            var_dump('create bucket');
-            $this->storageApi->createBucket('test-wr-db-snowflake', Client::STAGE_IN, '', 'snowflake');
-            var_dump('done');
+        $bucketId = 'test-wr-db-synapse';
+        if (!$this->storageApi->bucketExists('in.c-' . $bucketId)) {
+            $this->storageApi->createBucket($bucketId, Client::STAGE_IN);
         }
 
-        $sourceTableId = $this->storageApi->createTable($bucketId, $tableId, new CsvFile($filePath));
+        $sourceTableId = $this->storageApi->createTable('in.c-' .$bucketId, $tableId, new CsvFile($filePath));
 
         $this->storageApi->writeTable($sourceTableId, new CsvFile($filePath));
         $job = $this->storageApi->exportTableAsync(
@@ -50,17 +50,14 @@ class StagingStorageLoader
             (new GetFileOptions())->setFederationToken(true)
         );
 
-        if (isset($fileInfo['absPath'])) {
-            return [
-                'stagingStorage' => self::STORAGE_ABS,
-                'manifest' => $this->getAbsManifest($fileInfo),
-            ];
-        } else {
-            return [
-                'stagingStorage' => self::STORAGE_S3,
-                'manifest' => $this->getS3Manifest($fileInfo),
-            ];
+        if (!isset($fileInfo['absPath'])) {
+            throw new RuntimeException('Only ABS staging storage is supported.');
         }
+
+        return [
+            'stagingStorage' => self::STORAGE_ABS,
+            'manifest' => $this->getAbsManifest($fileInfo),
+        ];
     }
 
     private function getS3Manifest(array $fileInfo): array

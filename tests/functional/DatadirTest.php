@@ -21,35 +21,41 @@ class DatadirTest extends DatadirTestCase
         return parent::runScript($datadirPath);
     }
 
-    protected function uploadFixtures(string $datadirPath): void {
+    protected function uploadFixtures(string $datadirPath): void
+    {
         $stagingStorageLoader = new StagingStorageLoader(
             $datadirPath,
             new Client([
-                'url' =>getenv('KBC_URL'),
+                'url' => getenv('KBC_URL'),
                 'token' => getenv('STORAGE_API_TOKEN'),
             ])
         );
 
         $finder = new Finder();
-        var_dump('xxx');
-        var_dump(scandir($datadirPath . '/in/tables'));
         try {
             $tables = $finder->files()->in($datadirPath . '/in/tables')->name('*.csv');
             foreach ($tables as $table) {
+                // Upload file to ABS
                 $uploadFileInfo = $stagingStorageLoader->upload($table->getFilenameWithoutExtension());
-                var_dump($uploadFileInfo);
+
+                // Generate new manifest
+                $manifestPath = $table->getPathname() . '.manifest';
+                $manifestData = json_decode((string)file_get_contents($manifestPath), true);
+                $manifestData[$uploadFileInfo['stagingStorage']] = $uploadFileInfo['manifest'];
+
+                // Remove local file and manifest
+                unlink($table->getPathname());
+                unlink($manifestPath);
+
+                // Write new manifest
+                file_put_contents(
+                    $manifestPath,
+                    json_encode($manifestData)
+                );
             }
         } catch (DirectoryNotFoundException $e) {
             // directory not found -> skip this step
         }
-
-        exit(1);
-
-//        $dstManifestPath = $tmpRunDir . '/in/tables/' . $table['tableId'] . '.csv.manifest';
-//        file_put_contents(
-//            $dstManifestPath,
-//            json_encode($manifestData)
-//        );
     }
 
     protected function cleanDb(string $name): void
