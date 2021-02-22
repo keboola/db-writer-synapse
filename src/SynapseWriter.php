@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Keboola\DbWriter\Synapse;
 
+use PDO;
 use SplFileInfo;
 use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
@@ -15,82 +18,92 @@ class SynapseWriter extends Writer implements WriterInterface
     public const STAGE_NAME = 'db-writer';
 
     /** @var string[]  */
-    private static $allowedTypes = [
-        'number',
-        'decimal', 'numeric',
-        'int', 'integer', 'bigint', 'smallint', 'tinyint', 'byteint',
-        'float', 'float4', 'float8',
-        'double', 'double precision', 'real',
-        'boolean',
-        'char', 'character', 'varchar', 'string', 'text', 'binary',
-        'date', 'time', 'timestamp', 'timestamp_ltz', 'timestamp_ntz', 'timestamp_tz',
+    private static array $allowedTypes = [
+        'decimal', 'numeric', 'float', 'real', 'money', 'smallmoney', 'bigint', 'int', 'smallint',
+        'tinyint', 'bit', 'nvarchar', 'nchar', 'varchar', 'char', 'varbinary', 'binary', 'uniqueidentifier',
+        'datetimeoffset', 'datetime2', 'datetime', 'smalldatetime', 'date', 'time',
     ];
 
     /** @var string[]  */
-    private static $typesWithSize = [
-        'number', 'decimal', 'numeric',
-        'char', 'character', 'varchar', 'string', 'text', 'binary',
+    private static array $typesWithSize = [
+        'decimal', 'numeric', 'float', 'nvarchar', 'nchar', 'varchar', 'char', 'varbinary', 'binary', 'time',
     ];
-
-    /** @var Connection */
-    protected $db;
-
-    /** @var LoggerInterface */
-    protected $logger;
 
     protected IAdapter $adapter;
 
-    public function __construct(array $dbParams, LoggerInterface $logger, IAdapter $adapter)
+    public static function getAllowedTypes(): array
     {
-        $this->logger = $logger;
-        $this->dbParams = $dbParams;
-        $this->adapter = $adapter;
-
-        try {
-            $this->db = $this->createConnection($this->dbParams);
-        } catch (\Throwable $e) {
-             throw new UserException('Error connecting to DB: ' . $e->getMessage(), 0, $e);
-        }
-
-        $this->validateAndSetWarehouse();
-        $this->validateAndSetSchema();
+        return self::$allowedTypes;
     }
 
-    public function createConnection(array $dbParams): \PDO
+    public function __construct(array $dbParams, LoggerInterface $logger, IAdapter $adapter)
+    {
+        parent::__construct($dbParams, $logger);
+        $this->adapter = $adapter;
+    }
+
+    public function showTables(string $dbName): array
     {
         throw new ApplicationException('Method not implemented');
     }
 
-    public function writeFromAdapter(array $table): void
+    public function getTableInfo(string $tableName): array
     {
-        $this->execQuery($this->generateDropStageCommand());
+        throw new ApplicationException('Method not implemented');
+    }
 
-        $stageName = $this->generateStageName((string) getenv('KBC_RUNID'));
+    public function write(SplFileInfo $csv, array $table): void
+    {
+        throw new ApplicationException('Method not implemented');
+    }
 
-        $this->execQuery($this->adapter->generateCreateStageCommand($stageName));
+    public function createConnection(array $dbParams): PDO
+    {
+        $host = $dbParams['host'] . ',' . $dbParams['port'];
+        $options['Server'] = 'tcp:' . $host;
+        $options['Database'] = $dbParams['database'];
+        $dsn = sprintf('sqlsrv:%s', implode(';', array_map(function ($key, $item) {
+            return sprintf('%s=%s', $key, $item);
+        }, array_keys($options), $options)));
+        $this->logger->info("Connecting to DSN '" . $dsn . "'");
+
+        $pdo = new PDO($dsn, $dbParams['user'], $dbParams['password'], [
+            'LoginTimeout' => 30,
+            'ConnectRetryCount' => 3,
+            'ConnectRetryInterval' => 10,
+            PDO::SQLSRV_ATTR_QUERY_TIMEOUT => 10800,
+        ]);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        return $pdo;
+    }
+
+    public function createStaging(array $table): void
+    {
+        $sqlDefinitions = [$this->getColumnsSqlDefinition($table)];
+        if (!empty($table['primaryKey'])) {
+            //$sqlDefinitions [] = $this->getPrimaryKeySqlDefinition($table['primaryKey']);
+        }
+
+        $this->execQuery(sprintf(
+            'CREATE TABLE %s (%s);',
+            $this->nameWithSchemaEscaped($table['dbName']),
+            implode(', ', $sqlDefinitions)
+        ));
+    }
+
+    public function writeFromAdapter(array $stageTable): void
+    {
+        $escapedTableName = $this->nameWithSchemaEscaped($stageTable['dbName']);
+        $this->execQuery($this->adapter->generateCreateStageCommand($escapedTableName));
 
         try {
             $this->execQuery(
-                $this->adapter->generateCopyCommand(
-                    $this->nameWithSchemaEscaped($table['dbName']),
-                    $stageName,
-                    $table['items']
-                )
+                $this->adapter->generateCopyCommand($escapedTableName, $stageTable['items'])
             );
         } catch (UserException $e) {
-            $this->execQuery($this->generateDropStageCommand($stageName));
             throw $e;
         }
-
-        $this->execQuery($this->generateDropStageCommand($stageName));
-    }
-
-    private function generateDropStageCommand(string $stage = self::STAGE_NAME): string
-    {
-        return sprintf(
-            'DROP STAGE IF EXISTS %s',
-            $this->quoteIdentifier($stage)
-        );
     }
 
     protected function nameWithSchemaEscaped(string $tableName, ?string $schemaName = null): string
@@ -100,14 +113,15 @@ class SynapseWriter extends Writer implements WriterInterface
         }
         return sprintf(
             '%s.%s',
-            $this->quoteIdentifier($schemaName),
-            $this->quoteIdentifier($tableName)
+            self::quoteIdentifier($schemaName),
+            self::quoteIdentifier($tableName)
         );
     }
 
     public static function quote(string $value): string
     {
-        return "'" . addslashes($value) . "'";
+        $q = "'";
+        return ($q . str_replace("$q", "$q$q", $value) . $q);
     }
 
     public static function quoteIdentifier(string $value): string
@@ -118,19 +132,23 @@ class SynapseWriter extends Writer implements WriterInterface
 
     public function drop(string $tableName): void
     {
-        $this->execQuery(sprintf('DROP TABLE IF EXISTS %s;', $this->quoteIdentifier($tableName)));
+        $this->execQuery(sprintf(
+            'IF object_id(%s,\'U\') IS NOT NULL DROP TABLE %s;',
+            self::quote($tableName),
+            self::quoteIdentifier($tableName)
+        ));
     }
 
     public function create(array $table): void
     {
         $sqlDefinitions = [$this->getColumnsSqlDefinition($table)];
         if (!empty($table['primaryKey'])) {
-            $sqlDefinitions [] = $this->getPrimaryKeySqlDefinition($table['primaryKey']);
+            //$sqlDefinitions [] = $this->getPrimaryKeySqlDefinition($table['primaryKey']);
         }
 
         $this->execQuery(sprintf(
             'CREATE TABLE %s (%s);',
-            $this->quoteIdentifier($table['dbName']),
+            self::quoteIdentifier($table['dbName']),
             implode(', ', $sqlDefinitions)
         ));
     }
@@ -139,12 +157,12 @@ class SynapseWriter extends Writer implements WriterInterface
     {
         $sqlDefinitions = [$this->getColumnsSqlDefinition($table)];
         if (!empty($table['primaryKey'])) {
-            $sqlDefinitions [] = $this->getPrimaryKeySqlDefinition($table['primaryKey']);
+            //$sqlDefinitions [] = $this->getPrimaryKeySqlDefinition($table['primaryKey']);
         }
 
         $this->execQuery(sprintf(
             'CREATE TABLE IF NOT EXISTS %s (%s);',
-            $this->quoteIdentifier($table['dbName']),
+            self::quoteIdentifier($table['dbName']),
             implode(', ', $sqlDefinitions)
         ));
     }
@@ -153,22 +171,8 @@ class SynapseWriter extends Writer implements WriterInterface
     {
         $this->execQuery(sprintf(
             'ALTER TABLE %s SWAP WITH %s',
-            $this->quoteIdentifier($table2),
-            $this->quoteIdentifier($table1)
-        ));
-    }
-
-    public function createStaging(array $table): void
-    {
-        $sqlDefinitions = [$this->getColumnsSqlDefinition($table)];
-        if (!empty($table['primaryKey'])) {
-            $sqlDefinitions [] = $this->getPrimaryKeySqlDefinition($table['primaryKey']);
-        }
-
-        $this->execQuery(sprintf(
-            'CREATE TEMPORARY TABLE %s (%s);',
-            $this->quoteIdentifier($table['dbName']),
-            implode(', ', $sqlDefinitions)
+            self::quoteIdentifier($table2),
+            self::quoteIdentifier($table1)
         ));
     }
 
@@ -186,7 +190,7 @@ class SynapseWriter extends Writer implements WriterInterface
 
         $columns = array_map(
             function ($item) {
-                return $this->quoteIdentifier($item['dbName']);
+                return self::quoteIdentifier($item['dbName']);
             },
             array_filter($table['items'], function ($item) {
                 return strtolower($item['type']) !== 'ignore';
@@ -200,9 +204,9 @@ class SynapseWriter extends Writer implements WriterInterface
                 $joinClauseArr[] = sprintf(
                     '%s.%s=%s.%s',
                     $targetTable,
-                    $this->quoteIdentifier($value),
+                    self::quoteIdentifier($value),
                     $sourceTable,
-                    $this->quoteIdentifier($value)
+                    self::quoteIdentifier($value)
                 );
             }
             $joinClause = implode(' AND ', $joinClauseArr);
@@ -244,14 +248,9 @@ class SynapseWriter extends Writer implements WriterInterface
         $this->drop($table['dbName']);
     }
 
-    public static function getAllowedTypes(): array
-    {
-        return self::$allowedTypes;
-    }
-
     public function tableExists(string $tableName): bool
     {
-        $res = $this->db->fetchAll(sprintf(
+        $res = $this->fetchAll(sprintf(
             '
                 SELECT *
                 FROM INFORMATION_SCHEMA.TABLES
@@ -277,48 +276,25 @@ class SynapseWriter extends Writer implements WriterInterface
         }
     }
 
-    public function showTables(string $dbName): array
+    private function fetchAll(string $query): array
     {
-        throw new ApplicationException('Method not implemented');
+        /** @var \PDOStatement $stmt */
+        $stmt = $this->db->query($query);
+        /** @var array $result */
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $result;
     }
 
-    public function getTableInfo(string $tableName): array
-    {
-        throw new ApplicationException('Method not implemented');
-    }
-
-    public function write(SplFileInfo $csv, array $table): void
-    {
-        throw new ApplicationException('Method not implemented');
-    }
-
-    public function getUserDefaultWarehouse(): ?string
-    {
-        $sql = sprintf(
-            'DESC USER %s;',
-            $this->db->quoteIdentifier($this->getCurrentUser())
-        );
-
-        $config = $this->db->fetchAll($sql);
-
-        foreach ($config as $item) {
-            if ($item['property'] === 'DEFAULT_WAREHOUSE') {
-                return $item['value'] === 'null' ? null : $item['value'];
-            }
-        }
-
-        return null;
-    }
 
     public function testConnection(): void
     {
-        $this->execQuery('SELECT current_date;');
+        $this->execQuery('SELECT 1');
     }
 
     public function generateTmpName(string $tableName): string
     {
-        $tmpId = '_temp_' . uniqid('wr_db_', true);
-        return mb_substr($tableName, 0, 256 - mb_strlen($tmpId)) . $tmpId;
+        $tmpId = '_' . uniqid('wr_db_', true);
+        return '#' . mb_substr($tableName, 0, 256 - mb_strlen($tmpId)) . $tmpId;
     }
 
     /**
@@ -327,7 +303,7 @@ class SynapseWriter extends Writer implements WriterInterface
      * @param string $runId
      * @return string
      */
-    public function generateStageName(string $runId)
+    public function generateStageName(string $runId): string
     {
         return rtrim(
             mb_substr(
@@ -345,93 +321,41 @@ class SynapseWriter extends Writer implements WriterInterface
 
     public function getCurrentUser(): string
     {
-        return $this->db->fetchAll('SELECT CURRENT_USER;')[0]['CURRENT_USER'];
+        return $this->fetchAll('SELECT CURRENT_USER;')[0]['CURRENT_USER'];
     }
 
     public function checkPrimaryKey(array $columns, string $targetTable): void
     {
-        $primaryKeysInDb = $this->db->getTablePrimaryKey($this->dbParams['schema'], $targetTable);
-
-        sort($primaryKeysInDb);
-        sort($columns);
-
-        if ($primaryKeysInDb !== $columns) {
-            throw new UserException(sprintf(
-                'Primary key(s) in configuration does NOT match with keys in DB table.' . PHP_EOL
-                . 'Keys in configuration: %s' . PHP_EOL
-                . 'Keys in DB table: %s',
-                implode(',', $columns),
-                implode(',', $primaryKeysInDb)
-            ));
-        }
-    }
-
-    public function checkForeignKey(string $sourceTable, string $targetTable, string $targetColumn): void
-    {
-        $foreignKeys = $this->db->getTableConstraints($this->dbParams['schema'], $sourceTable);
-
-        $constraint = array_filter($foreignKeys, function ($item) use ($targetTable, $targetColumn) {
-            $constraintName = sprintf('FK_%s_%s', strtoupper($targetTable), strtoupper($targetColumn));
-            if ($item['CONSTRAINT_NAME'] === $constraintName) {
-                return true;
-            }
-            return false;
-        });
-
-        if (!$constraint) {
-            throw new UserException(sprintf('Foreign keys on table  \'%s\' does not exists', $sourceTable));
-        }
+//        $primaryKeysInDb = $this->db->getTablePrimaryKey($this->dbParams['schema'], $targetTable);
+//
+//        sort($primaryKeysInDb);
+//        sort($columns);
+//
+//        if ($primaryKeysInDb !== $columns) {
+//            throw new UserException(sprintf(
+//                'Primary key(s) in configuration does NOT match with keys in DB table.' . PHP_EOL
+//                . 'Keys in configuration: %s' . PHP_EOL
+//                . 'Keys in DB table: %s',
+//                implode(',', $columns),
+//                implode(',', $primaryKeysInDb)
+//            ));
+//        }
     }
 
     private function addPrimaryKeyIfMissing(array $columns, string $targetTable): void
     {
-        $primaryKeysInDb = $this->db->getTablePrimaryKey($this->dbParams['schema'], $targetTable);
-        if (!empty($primaryKeysInDb)) {
-            return;
-        }
-
-        $sql = sprintf(
-            'ALTER TABLE %s ADD %s;',
-            $this->nameWithSchemaEscaped($targetTable),
-            $this->getPrimaryKeySqlDefinition($columns)
-        );
-
-        $this->execQuery($sql);
-    }
-
-    private function addUniqueKeyIfMissing(string $targetTable, string $targetColumn): void
-    {
-        $uniquesInDb = $this->db->getTableUniqueKeys($this->dbParams['schema'], $targetTable);
-        $primaryKeysInDb = $this->db->getTablePrimaryKey($this->dbParams['schema'], $targetTable);
-        if (in_array($targetColumn, $uniquesInDb) || !empty($primaryKeysInDb)) {
-            return;
-        }
-
-        $this->execQuery(sprintf(
-            'ALTER TABLE %s ADD UNIQUE (%s);',
-            $this->nameWithSchemaEscaped($targetTable),
-            $this->quoteIdentifier($targetColumn)
-        ));
-    }
-
-    private function isSameTypeColumns(string $sourceTable, string $sourceColumnName, string $targetTable, string $targetColumnName): bool
-    {
-        $sourceColumnDataType = $this->db->getColumnDataType(
-            $this->dbParams['schema'],
-            $sourceTable,
-            $sourceColumnName
-        );
-
-        $targetColumnDataType = $this->db->getColumnDataType(
-            $this->dbParams['schema'],
-            $targetTable,
-            $targetColumnName
-        );
-
-        return
-            $sourceColumnDataType->type === $targetColumnDataType->type &&
-            $sourceColumnDataType->length === $targetColumnDataType->length &&
-            $sourceColumnDataType->nullable === $targetColumnDataType->nullable;
+//        $primaryKeysInDb = $this->db->getTablePrimaryKey($this->dbParams['schema'], $targetTable);
+//        if (!empty($primaryKeysInDb)) {
+//            return;
+//        }
+//
+//        $sql = sprintf(
+//            'ALTER TABLE %s ADD %s;',
+//            $this->nameWithSchemaEscaped($targetTable),
+//            $this->getPrimaryKeySqlDefinition($columns)
+//        );
+//
+//        $this->execQuery($sql);
     }
 
     private function getColumnsSqlDefinition(array $table): string
@@ -454,7 +378,7 @@ class SynapseWriter extends Writer implements WriterInterface
             }
             $sql .= sprintf(
                 '%s %s %s %s,',
-                $this->quoteIdentifier($col['dbName']),
+                self::quoteIdentifier($col['dbName']),
                 $type,
                 $null,
                 $default
@@ -464,23 +388,24 @@ class SynapseWriter extends Writer implements WriterInterface
         return trim($sql, ' ,');
     }
 
-    private function getPrimaryKeySqlDefinition(array $primaryColumns): string
-    {
-        $writer = $this;
-
-        return sprintf(
-            'PRIMARY KEY(%s)',
-            implode(
-                ', ',
-                array_map(
-                    function ($primaryColumn) use ($writer) {
-                        return $writer->quoteIdentifier($primaryColumn);
-                    },
-                    $primaryColumns
-                )
-            )
-        );
-    }
+//    private function getPrimaryKeySqlDefinition(array $primaryColumns): string
+//    {
+//        return '';
+////        $writer = $this;
+////
+////        return sprintf(
+////            'PRIMARY KEY(%s)',
+////            implode(
+////                ', ',
+////                array_map(
+////                    function ($primaryColumn) use ($writer) {
+////                        return $writer->quoteIdentifier($primaryColumn);
+////                    },
+////                    $primaryColumns
+////                )
+////            )
+////        );
+//    }
 
     private function hideCredentialsInQuery(string $query): ?string
     {
@@ -491,59 +416,12 @@ class SynapseWriter extends Writer implements WriterInterface
         );
     }
 
-    private function validateAndSetWarehouse(): void
-    {
-        $envWarehouse = !empty($this->dbParams['warehouse']) ? $this->dbParams['warehouse'] : null;
-
-        $defaultWarehouse = $this->getUserDefaultWarehouse();
-        if (!$defaultWarehouse && !$envWarehouse) {
-            throw new UserException('Snowflake user has any "DEFAULT_WAREHOUSE" specified. Set "warehouse" parameter.');
-        }
-
-        $warehouse = $envWarehouse ?: $defaultWarehouse;
-
-        try {
-            $this->db->query(sprintf(
-                'USE WAREHOUSE %s;',
-                $this->db->quoteIdentifier($warehouse)
-            ));
-        } catch (\Throwable $e) {
-            if (preg_match('/Object does not exist/ui', $e->getMessage())) {
-                throw new UserException(sprintf('Invalid warehouse "%s" specified', $warehouse));
-            } else {
-                throw $e;
-            }
-        }
-    }
-
-    private function validateAndSetSchema(): void
-    {
-        try {
-            $this->db->query(sprintf(
-                'USE SCHEMA %s;',
-                $this->db->quoteIdentifier($this->dbParams['schema'])
-            ));
-        } catch (\Throwable $e) {
-            if (preg_match('/Object does not exist/ui', $e->getMessage())) {
-                throw new UserException(sprintf('Invalid schema "%s" specified', $this->dbParams['schema']));
-            } else {
-                throw $e;
-            }
-        }
-    }
-
     public function validateTable(array $tableConfig): void
     {
-        // TODO: Implement validateTable() method.
     }
 
     public function getConnection(): \PDO
     {
         throw new ApplicationException('Method not implemented');
-    }
-
-    public function getSnowflakeConnection(): Connection
-    {
-        return $this->db;
     }
 }

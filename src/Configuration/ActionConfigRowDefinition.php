@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Keboola\DbWriter\Synapse\Configuration;
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;

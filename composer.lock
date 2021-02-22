@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "59d4e3119fd4ce52ec2600d0f0cd29a4",
+    "content-hash": "82fdd30fa335347a3e17d983d152c697",
     "packages": [
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.173.13",
+            "version": "3.173.14",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "b8ef72b8b335a1bb004505784f1a03ff5b37928f"
+                "reference": "ff2b3623adc6781da48ee017e7042a363cd65955"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/b8ef72b8b335a1bb004505784f1a03ff5b37928f",
-                "reference": "b8ef72b8b335a1bb004505784f1a03ff5b37928f",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/ff2b3623adc6781da48ee017e7042a363cd65955",
+                "reference": "ff2b3623adc6781da48ee017e7042a363cd65955",
                 "shasum": ""
             },
             "require": {
@@ -92,9 +92,9 @@
             "support": {
                 "forum": "https://forums.aws.amazon.com/forum.jspa?forumID=80",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.173.13"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.173.14"
             },
-            "time": "2021-02-19T19:14:50+00:00"
+            "time": "2021-02-22T19:22:33+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
@@ -543,16 +543,16 @@
         },
         {
             "name": "keboola/storage-api-client",
-            "version": "12.0.0",
+            "version": "12.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/keboola/storage-api-php-client.git",
-                "reference": "b83e3a97a4bff68d49604ee6bdb678a3c90d7fbe"
+                "reference": "b040fba2dea0c163bc32dee5f52c436ea8c63fdf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/keboola/storage-api-php-client/zipball/b83e3a97a4bff68d49604ee6bdb678a3c90d7fbe",
-                "reference": "b83e3a97a4bff68d49604ee6bdb678a3c90d7fbe",
+                "url": "https://api.github.com/repos/keboola/storage-api-php-client/zipball/b040fba2dea0c163bc32dee5f52c436ea8c63fdf",
+                "reference": "b040fba2dea0c163bc32dee5f52c436ea8c63fdf",
                 "shasum": ""
             },
             "require": {
@@ -593,9 +593,9 @@
             "homepage": "http://keboola.com",
             "support": {
                 "issues": "https://github.com/keboola/storage-api-php-client/issues",
-                "source": "https://github.com/keboola/storage-api-php-client/tree/12.0.0"
+                "source": "https://github.com/keboola/storage-api-php-client/tree/12.0.1"
             },
-            "time": "2021-02-22T08:13:34+00:00"
+            "time": "2021-02-22T12:40:20+00:00"
         },
         {
             "name": "microsoft/azure-storage-blob",
@@ -4387,7 +4387,8 @@
     "platform": {
         "php": "^7.4",
         "ext-json": "*",
-        "ext-mbstring": "*"
+        "ext-mbstring": "*",
+        "ext-pdo": "*"
     },
     "platform-dev": [],
     "plugin-api-version": "2.0.0"

@@ -1,5 +1,12 @@
 {
   "parameters": {
+    "db": {
+      "host": "%env(string:SYNAPSE_SERVER)%",
+      "port": "%env(int:SYNAPSE_PORT)%",
+      "user": "%env(string:SYNAPSE_UID)%",
+      "#password": "%env(string:SYNAPSE_PWD)%",
+      "database": "%env(string:SYNAPSE_DATABASE)%"
+    },
     "tableId": "simple",
     "dbName": "simple",
     "export": true,

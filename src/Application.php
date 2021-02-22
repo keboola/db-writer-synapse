@@ -19,12 +19,10 @@ class Application extends BaseApplication
 {
     public const STORAGE_ABS = 'abs';
 
-    public const STORAGE_S3 = 's3';
-
     public function __construct(LoggerInterface $logger)
     {
         $dataDir = getenv('KBC_DATADIR') ?: '/data';
-        $config = json_decode(file_get_contents($dataDir . '/config.json'), true);
+        $config = json_decode((string) file_get_contents($dataDir . '/config.json'), true);
         $config['parameters'] = $config['parameters'] ?? [];
         $config['parameters']['data_dir'] = $dataDir;
 
@@ -38,7 +36,6 @@ class Application extends BaseApplication
                 $configDefinition = new ActionConfigRowDefinition();
             }
         }
-
 
         parent::__construct($config, $logger, $configDefinition);
 
@@ -79,14 +76,9 @@ class Application extends BaseApplication
             } else {
                 $this->writeFullFromAdapter($tableConfig, $adapter);
             }
-        } catch (Exception $e) {
-            $this['logger']->error($e->getMessage());
-            throw new UserException($e->getMessage(), 0, $e);
         } catch (UserException $e) {
             $this['logger']->error($e->getMessage());
             throw $e;
-        } catch (\Throwable $e) {
-            throw new ApplicationException($e->getMessage(), 2, $e);
         }
 
         return $tableConfig;
@@ -156,9 +148,6 @@ class Application extends BaseApplication
 
     private function getAdapter(array $manifest): IAdapter
     {
-        if (isset($manifest[self::STORAGE_S3])) {
-            throw new ApplicationException('S3 staging storage is not implemented.');
-        }
         if (isset($manifest[self::STORAGE_ABS])) {
             return new AbsAdapter($manifest[self::STORAGE_ABS]);
         }

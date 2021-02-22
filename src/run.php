@@ -11,7 +11,7 @@ require __DIR__ . '/../vendor/autoload.php';
 $logger = new Logger();
 try {
     $app = new Application($logger);
-    $app->run();
+    echo $app->run();
     exit(0);
 } catch (UserExceptionInterface $e) {
     $logger->error($e->getMessage());

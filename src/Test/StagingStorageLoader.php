@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Keboola\DbWriter\Synapse\Test;
 
+use Keboola\DbWriter\Synapse\Application;
 use RuntimeException;
 use Keboola\Csv\CsvFile;
 use Keboola\StorageApi\Client;
@@ -9,9 +12,9 @@ use Keboola\StorageApi\Options\GetFileOptions;
 
 class StagingStorageLoader
 {
-    public const STORAGE_ABS = 'abs';
+    private const CACHE_PATH = __DIR__ . '/../../tests/.cache/StagingStorageLoader.cache.json';
 
-    public const STORAGE_S3 = 's3';
+    private array $fileInfoCache;
 
     private string $dataDir;
 
@@ -21,6 +24,12 @@ class StagingStorageLoader
     {
         $this->dataDir = $dataDir;
         $this->storageApi = $storageApiClient;
+        $this->fileInfoCache = @json_decode((string) @file_get_contents(self::CACHE_PATH), true) ?: [];
+    }
+
+    public function __destruct()
+    {
+        file_put_contents(self::CACHE_PATH, @json_encode($this->fileInfoCache));
     }
 
     private function getInputCsv(string $tableId): string
@@ -28,8 +37,21 @@ class StagingStorageLoader
         return sprintf($this->dataDir . '/in/tables/%s.csv', $tableId);
     }
 
-    public function upload(string $tableId): array
+    public function upload(string $tableId, string $testName): array
     {
+        // Load from cache
+        $cacheKey = $testName . '-' . $tableId;
+        if (isset($this->fileInfoCache[$cacheKey])) {
+            $result = $this->fileInfoCache[$cacheKey];
+            try {
+                $this->storageApi->getFile($result['fileId']);
+                return $result;
+            } catch (\Throwable $e) {
+                // re-upload if an error
+            }
+        }
+
+        // Upload
         $filePath = $this->getInputCsv($tableId);
         $bucketId = 'test-wr-db-synapse';
         if (!$this->storageApi->bucketExists('in.c-' . $bucketId)) {
@@ -37,14 +59,8 @@ class StagingStorageLoader
         }
 
         $sourceTableId = $this->storageApi->createTable('in.c-' .$bucketId, $tableId, new CsvFile($filePath));
-
         $this->storageApi->writeTable($sourceTableId, new CsvFile($filePath));
-        $job = $this->storageApi->exportTableAsync(
-            $sourceTableId,
-            [
-                'gzip' => true,
-            ]
-        );
+        $job = $this->storageApi->exportTableAsync($sourceTableId, ['gzip' => true]);
         $fileInfo = $this->storageApi->getFile(
             $job['file']['id'],
             (new GetFileOptions())->setFederationToken(true)
@@ -54,25 +70,14 @@ class StagingStorageLoader
             throw new RuntimeException('Only ABS staging storage is supported.');
         }
 
-        return [
-            'stagingStorage' => self::STORAGE_ABS,
+        $result = [
+            'fileId' => $job['file']['id'],
+            'stagingStorage' => Application::STORAGE_ABS,
             'manifest' => $this->getAbsManifest($fileInfo),
         ];
-    }
 
-    private function getS3Manifest(array $fileInfo): array
-    {
-        return [
-            'isSliced' => $fileInfo['isSliced'],
-            'region' => $fileInfo['region'],
-            'bucket' => $fileInfo['s3Path']['bucket'],
-            'key' => $fileInfo['isSliced']?$fileInfo['s3Path']['key'] . 'manifest':$fileInfo['s3Path']['key'],
-            'credentials' => [
-                'access_key_id' => $fileInfo['credentials']['AccessKeyId'],
-                'secret_access_key' => $fileInfo['credentials']['SecretAccessKey'],
-                'session_token' => $fileInfo['credentials']['SessionToken'],
-            ],
-        ];
+        $this->fileInfoCache[$cacheKey] = $result;
+        return $result;
     }
 
     private function getAbsManifest(array $fileInfo): array

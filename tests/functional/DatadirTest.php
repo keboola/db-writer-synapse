@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Keboola\DbWriter\Synapse\FunctionalTests;
 
-use _HumbugBoxfac515c46e83\Nette\DirectoryNotFoundException;
 use Keboola\DatadirTests\DatadirTestCase;
 use Keboola\DbWriter\Synapse\Test\StagingStorageLoader;
 use Keboola\StorageApi\Client;
+use Symfony\Component\Finder\Exception\DirectoryNotFoundException;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Process\Process;
 
@@ -36,11 +36,14 @@ class DatadirTest extends DatadirTestCase
             $tables = $finder->files()->in($datadirPath . '/in/tables')->name('*.csv');
             foreach ($tables as $table) {
                 // Upload file to ABS
-                $uploadFileInfo = $stagingStorageLoader->upload($table->getFilenameWithoutExtension());
+                $uploadFileInfo = $stagingStorageLoader->upload(
+                    $table->getFilenameWithoutExtension(),
+                    (string) $this->dataName()
+                );
 
                 // Generate new manifest
                 $manifestPath = $table->getPathname() . '.manifest';
-                $manifestData = json_decode((string)file_get_contents($manifestPath), true);
+                $manifestData = json_decode((string) file_get_contents($manifestPath), true);
                 $manifestData[$uploadFileInfo['stagingStorage']] = $uploadFileInfo['manifest'];
 
                 // Remove local file and manifest
@@ -60,6 +63,5 @@ class DatadirTest extends DatadirTestCase
 
     protected function cleanDb(string $name): void
     {
-
     }
 }

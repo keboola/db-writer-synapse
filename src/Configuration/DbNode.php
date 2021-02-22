@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Keboola\DbWriter\Synapse\Configuration;
 
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
-use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 
 class DbNode extends ArrayNodeDefinition
 {
@@ -18,52 +19,24 @@ class DbNode extends ArrayNodeDefinition
 
     protected function init(NodeBuilder $builder): void
     {
-//        $this->addDriverNode($builder);
-//        $this->addHostNode($builder);
-//        $this->addPortNode($builder);
-//        $this->addDatabaseNode($builder);
-//        $this->addUserNode($builder);
-//        $this->addPasswordNode($builder);
-//        $this->addSshNode($builder);
-//        $this->addSslNode($builder);
-    }
-
-    public function getConfigTreeBuilder(): TreeBuilder
-    {
-        $treeBuilder = new TreeBuilder('parameters');
-
-        $rootNode = $treeBuilder->getRootNode();
-        $rootNode
-            ->ignoreExtraKeys(false)
-            ->children()
-                ->arrayNode('db')
-                    ->children()
-                        ->scalarNode('driver')->end()
-                        ->scalarNode('host')
-                            ->isRequired()
-                            ->cannotBeEmpty()
-                        ->end()
-                        ->scalarNode('port')->end()
-                        ->scalarNode('warehouse')->end()
-                        ->scalarNode('database')
-                            ->isRequired()
-                            ->cannotBeEmpty()
-                        ->end()
-                        ->scalarNode('schema')
-                            ->isRequired()
-                            ->cannotBeEmpty()
-                        ->end()
-                        ->scalarNode('user')
-                            ->isRequired()
-                            ->cannotBeEmpty()
-                        ->end()
-                        ->scalarNode('password')->end()
-                        ->scalarNode('#password')->end()
-                    ->end()
-                ->end()
+        $builder
+            ->scalarNode('host')
+                ->isRequired()
             ->end()
-        ;
-
-        return $treeBuilder;
+            ->integerNode('port')
+                ->defaultValue(1433)
+            ->end()
+            ->scalarNode('user')
+                ->isRequired()
+            ->end()
+            ->scalarNode('#password')
+                ->isRequired()
+            ->end()
+            ->scalarNode('database')
+                ->isRequired()
+            ->end()
+            ->scalarNode('schema')
+                ->defaultValue('dbo')
+            ->end();
     }
 }

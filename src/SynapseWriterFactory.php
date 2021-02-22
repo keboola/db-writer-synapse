@@ -6,6 +6,7 @@ namespace Keboola\DbWriter\Synapse;
 
 use InvalidArgumentException;
 use Keboola\DbWriter\Synapse\Adapter\IAdapter;
+use Keboola\DbWriter\Synapse\Adapter\NullAdapter;
 use Keboola\DbWriter\WriterFactory;
 use Psr\Log\LoggerInterface;
 
@@ -22,7 +23,7 @@ class SynapseWriterFactory extends WriterFactory
     public function create(LoggerInterface $logger, ?IAdapter $adapter = null): SynapseWriter
     {
         if (!$adapter) {
-            throw new InvalidArgumentException('Adapter must be set.');
+            $adapter = new NullAdapter();
         }
 
         return new SynapseWriter($this->parameters['db'], $logger, $adapter);

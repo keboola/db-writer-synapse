@@ -6,7 +6,7 @@ namespace Keboola\DbWriter\Synapse\Adapter;
 
 interface IAdapter
 {
-    public function generateCreateStageCommand(string $stageName): string;
+    public function generateCreateStageCommand(string $escapedTableName): string;
 
-    public function generateCopyCommand(string $tableName, string $stageName, array $columns): string;
+    public function generateCopyCommand(string $escapedTableName, array $columns): string;
 }
