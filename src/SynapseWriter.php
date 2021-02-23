@@ -95,15 +95,7 @@ class SynapseWriter extends Writer implements WriterInterface
     public function writeFromAdapter(array $stageTable): void
     {
         $escapedTableName = $this->nameWithSchemaEscaped($stageTable['dbName']);
-        $this->execQuery($this->adapter->generateCreateStageCommand($escapedTableName));
-
-        try {
-            $this->execQuery(
-                $this->adapter->generateCopyCommand($escapedTableName, $stageTable['items'])
-            );
-        } catch (UserException $e) {
-            throw $e;
-        }
+        $this->execQuery($this->adapter->generateImportToStageSql($escapedTableName));
     }
 
     protected function nameWithSchemaEscaped(string $tableName, ?string $schemaName = null): string
@@ -133,9 +125,9 @@ class SynapseWriter extends Writer implements WriterInterface
     public function drop(string $tableName): void
     {
         $this->execQuery(sprintf(
-            'IF object_id(%s,\'U\') IS NOT NULL DROP TABLE %s;',
-            self::quote($tableName),
-            self::quoteIdentifier($tableName)
+            'IF OBJECT_ID(N\'%s\', N\'U\') IS NOT NULL DROP TABLE %s;',
+            $this->nameWithSchemaEscaped($tableName),
+            $this->nameWithSchemaEscaped($tableName)
         ));
     }
 
@@ -270,7 +262,7 @@ class SynapseWriter extends Writer implements WriterInterface
     {
         $this->logger->info(sprintf("Executing query '%s'", $this->hideCredentialsInQuery($query)));
         try {
-            $this->db->query($query);
+            $this->db->exec($query);
         } catch (\Throwable $e) {
             throw new UserException('Query execution error: ' . $e->getMessage(), 0, $e);
         }
@@ -293,7 +285,7 @@ class SynapseWriter extends Writer implements WriterInterface
 
     public function generateTmpName(string $tableName): string
     {
-        $tmpId = '_' . uniqid('wr_db_', true);
+        $tmpId = '_' . str_replace('.', '_', uniqid('wr_db_', true));
         return '#' . mb_substr($tableName, 0, 256 - mb_strlen($tmpId)) . $tmpId;
     }
 

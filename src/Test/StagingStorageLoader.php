@@ -14,7 +14,7 @@ class StagingStorageLoader
 {
     private const CACHE_PATH = __DIR__ . '/../../tests/.cache/StagingStorageLoader.cache.json';
 
-    private array $fileInfoCache;
+    private array $fileIdCache;
 
     private string $dataDir;
 
@@ -24,12 +24,12 @@ class StagingStorageLoader
     {
         $this->dataDir = $dataDir;
         $this->storageApi = $storageApiClient;
-        $this->fileInfoCache = @json_decode((string) @file_get_contents(self::CACHE_PATH), true) ?: [];
+        $this->fileIdCache = @json_decode((string) @file_get_contents(self::CACHE_PATH), true) ?: [];
     }
 
     public function __destruct()
     {
-        file_put_contents(self::CACHE_PATH, @json_encode($this->fileInfoCache));
+        file_put_contents(self::CACHE_PATH, @json_encode($this->fileIdCache));
     }
 
     private function getInputCsv(string $tableId): string
@@ -41,11 +41,15 @@ class StagingStorageLoader
     {
         // Load from cache
         $cacheKey = $testName . '-' . $tableId;
-        if (isset($this->fileInfoCache[$cacheKey])) {
-            $result = $this->fileInfoCache[$cacheKey];
+        if (isset($this->fileIdCache[$cacheKey])) {
+            $fileId = $this->fileIdCache[$cacheKey];
             try {
-                $this->storageApi->getFile($result['fileId']);
-                return $result;
+                $fileInfo = $this->storageApi->getFile($fileId);
+                return [
+                    'fileId' => $fileId,
+                    'stagingStorage' => Application::STORAGE_ABS,
+                    'manifest' => $this->getAbsManifest($fileInfo),
+                ];
             } catch (\Throwable $e) {
                 // re-upload if an error
             }
@@ -76,7 +80,7 @@ class StagingStorageLoader
             'manifest' => $this->getAbsManifest($fileInfo),
         ];
 
-        $this->fileInfoCache[$cacheKey] = $result;
+        $this->fileIdCache[$cacheKey] = $job['file']['id'];
         return $result;
     }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Keboola\DbWriter\Synapse;
 
-use Exception;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Application as BaseApplication;
 use Keboola\DbWriter\Exception\ApplicationException;
