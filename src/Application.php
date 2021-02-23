@@ -98,19 +98,14 @@ class Application extends BaseApplication
         /** @var SynapseWriter $writer */
         $writer = $this['writer_factory']->create($this['logger'], $adapter);
 
-        // write to staging table
+        // create staging table
         $stageTable = $tableConfig;
         $stageTable['dbName'] = $writer->generateTmpName($tableConfig['dbName']);
-
-        $writer->drop($stageTable['dbName']);
         $writer->createStaging($stageTable);
         $writer->writeFromAdapter($stageTable);
 
         // create destination table if not exists
-        $dstTableExists = $writer->tableExists($tableConfig['dbName']);
-        if (!$dstTableExists) {
-            $writer->create($tableConfig);
-        }
+        $writer->createIfNotExists($tableConfig);
         $writer->validateTable($tableConfig);
 
         // upsert from staging to destination table
@@ -122,18 +117,19 @@ class Application extends BaseApplication
         /** @var SynapseWriter $writer */
         $writer = $this['writer_factory']->create($this['logger'], $adapter);
 
-        $stagingTableName = uniqid('staging');
-        $stagingTableConfig = array_merge($tableConfig, [
-            'dbName' => $stagingTableName,
-        ]);
-        $writer->create($stagingTableConfig);
+        // create staging table
+        $stageTable = $tableConfig;
+        $stageTable['dbName'] = $writer->generateStageName($tableConfig['dbName']);
+        $writer->drop($stageTable['dbName']);
+        $writer->createStaging($stageTable);
+
         try {
-            // create dummy table for first load which will be replaced by tables swap
+            // create target table
             $writer->createIfNotExists($tableConfig);
-            $writer->writeFromAdapter($stagingTableConfig);
-            $writer->swapTables($tableConfig['dbName'], $stagingTableName);
+            $writer->writeFromAdapter($stageTable);
+            $writer->swapTables($tableConfig['dbName'], $stageTable['dbName']);
         } finally {
-            $writer->drop($stagingTableName);
+            $writer->drop($stageTable['dbName']);
         }
     }
 

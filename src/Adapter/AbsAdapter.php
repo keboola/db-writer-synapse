@@ -93,15 +93,15 @@ class AbsAdapter implements IAdapter
 
         $manifest = \GuzzleHttp\json_decode((string) stream_get_contents($manifestBlob->getContentStream()), true);
         return array_map(function (array $entry) use ($blobClient) {
-//            // this is temporary solution copy into is not failing when blob not exists
-//            try {
-//                /** @var string[] $parts */
-//                $parts = explode(sprintf('blob.core.windows.net/%s/', $this->container), $entry['url']);
-//                $blobPath = $parts[1];
-//                $blobClient->getBlob($this->container, $blobPath);
-//            } catch (ServiceException $e) {
-//                throw new UserException('Load error: ' . $e->getErrorText(), 0, $e);
-//            }
+            // this is temporary solution copy into is not failing when blob not exists
+            try {
+                /** @var string[] $parts */
+                $parts = explode(sprintf('blob.core.windows.net/%s/', $this->container), $entry['url']);
+                $blobPath = $parts[1];
+                $blobClient->getBlob($this->container, $blobPath);
+            } catch (ServiceException $e) {
+                throw new UserException('Load error: ' . $e->getErrorText(), 0, $e);
+            }
             return str_replace('azure://', 'https://', $entry['url']);
         }, $manifest['entries']);
     }

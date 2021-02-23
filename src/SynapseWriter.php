@@ -15,7 +15,9 @@ use Psr\Log\LoggerInterface;
 
 class SynapseWriter extends Writer implements WriterInterface
 {
-    public const STAGE_NAME = 'db-writer';
+    public const STAGE_NAME = '_db_writer_stage';
+
+    public const TEMP_NAME = '_db_writer_temp';
 
     /** @var string[]  */
     private static array $allowedTypes = [
@@ -140,32 +142,39 @@ class SynapseWriter extends Writer implements WriterInterface
 
         $this->execQuery(sprintf(
             'CREATE TABLE %s (%s);',
-            self::quoteIdentifier($table['dbName']),
+            $this->nameWithSchemaEscaped($table['dbName']),
             implode(', ', $sqlDefinitions)
         ));
     }
 
     public function createIfNotExists(array $table): void
     {
-        $sqlDefinitions = [$this->getColumnsSqlDefinition($table)];
-        if (!empty($table['primaryKey'])) {
-            //$sqlDefinitions [] = $this->getPrimaryKeySqlDefinition($table['primaryKey']);
+        if ($this->tableExists($table['dbName'])) {
+            return;
         }
-
-        $this->execQuery(sprintf(
-            'CREATE TABLE IF NOT EXISTS %s (%s);',
-            self::quoteIdentifier($table['dbName']),
-            implode(', ', $sqlDefinitions)
-        ));
+        $this->create($table);
     }
 
     public function swapTables(string $table1, string $table2): void
     {
-        $this->execQuery(sprintf(
-            'ALTER TABLE %s SWAP WITH %s',
-            self::quoteIdentifier($table2),
-            self::quoteIdentifier($table1)
-        ));
+        $sql = [];
+        $sql[] = sprintf(
+            'RENAME OBJECT %s TO %s;',
+            $this->nameWithSchemaEscaped($table1),
+            SynapseWriter::quoteIdentifier($table1 . '_old')
+        );
+        $sql[] = sprintf(
+            'RENAME OBJECT %s TO %s;',
+            $this->nameWithSchemaEscaped($table2),
+            SynapseWriter::quoteIdentifier($table1)
+        );
+        $sql[] = sprintf(
+            'RENAME OBJECT %s TO %s;',
+            $this->nameWithSchemaEscaped($table1 . '_old'),
+            SynapseWriter::quoteIdentifier($table2)
+        );
+
+        $this->execQuery(implode(' ', $sql));
     }
 
     public function upsert(array $table, string $targetTable): void
@@ -177,7 +186,7 @@ class SynapseWriter extends Writer implements WriterInterface
             $this->checkPrimaryKey($table['primaryKey'], $targetTable);
         }
 
-        $sourceTable = $this->nameWithSchemaEscaped($table['dbName']);
+        $tempTable = $this->nameWithSchemaEscaped($table['dbName']);
         $targetTable = $this->nameWithSchemaEscaped($targetTable);
 
         $columns = array_map(
@@ -195,9 +204,9 @@ class SynapseWriter extends Writer implements WriterInterface
             foreach ($table['primaryKey'] as $index => $value) {
                 $joinClauseArr[] = sprintf(
                     '%s.%s=%s.%s',
-                    $targetTable,
+                    'target',
                     self::quoteIdentifier($value),
-                    $sourceTable,
+                    'temp',
                     self::quoteIdentifier($value)
                 );
             }
@@ -208,24 +217,25 @@ class SynapseWriter extends Writer implements WriterInterface
                 $valuesClauseArr[] = sprintf(
                     '%s=%s.%s',
                     $column,
-                    $sourceTable,
+                    'temp',
                     $column
                 );
             }
             $valuesClause = implode(',', $valuesClauseArr);
 
+            // update target table from temp table
             $this->execQuery(sprintf(
-                'UPDATE %s SET %s FROM %s WHERE %s',
-                $targetTable,
+                'UPDATE target SET %s FROM %s AS target INNER JOIN %s AS temp ON %s',
                 $valuesClause,
-                $sourceTable,
+                $targetTable,
+                $tempTable,
                 $joinClause
             ));
 
             // delete updated from temp table
             $this->execQuery(sprintf(
-                'DELETE FROM %s USING %s WHERE %s',
-                $sourceTable,
+                'DELETE temp FROM %s AS temp INNER JOIN %s AS target ON %s',
+                $tempTable,
                 $targetTable,
                 $joinClause
             ));
@@ -233,7 +243,7 @@ class SynapseWriter extends Writer implements WriterInterface
 
         // insert new data
         $columnsClause = implode(',', $columns);
-        $query = "INSERT INTO {$targetTable} ({$columnsClause}) SELECT * FROM {$sourceTable}";
+        $query = "INSERT INTO {$targetTable} ({$columnsClause}) SELECT * FROM {$tempTable}";
         $this->execQuery($query);
 
         // drop temp table
@@ -285,24 +295,29 @@ class SynapseWriter extends Writer implements WriterInterface
 
     public function generateTmpName(string $tableName): string
     {
-        $tmpId = '_' . str_replace('.', '_', uniqid('wr_db_', true));
-        return '#' . mb_substr($tableName, 0, 256 - mb_strlen($tmpId)) . $tmpId;
+        // "#" is a mark for the temp table
+        return rtrim(
+            mb_substr(
+                sprintf(
+                    '#%s_%s',
+                    self::TEMP_NAME,
+                    str_replace('.', '_', $tableName)
+                ),
+                0,
+                255
+            ),
+            '-'
+        );
     }
 
-    /**
-     * Generate stage name for given run ID
-     *
-     * @param string $runId
-     * @return string
-     */
-    public function generateStageName(string $runId): string
+    public function generateStageName(string $tableName): string
     {
         return rtrim(
             mb_substr(
                 sprintf(
-                    '%s-%s',
+                    '%s_%s',
                     self::STAGE_NAME,
-                    str_replace('.', '-', $runId)
+                    str_replace('.', '_', $tableName)
                 ),
                 0,
                 255
@@ -402,8 +417,8 @@ class SynapseWriter extends Writer implements WriterInterface
     private function hideCredentialsInQuery(string $query): ?string
     {
         return preg_replace(
-            '/(AZURE_[A-Z_]*\\s=\\s.|AWS_[A-Z_]*\\s=\\s.)[0-9A-Za-z\\/\\+=\\-&:%]*/',
-            '${1}...\'',
+            '/(SECRET=)\'[^\']+\'/i',
+            '$1\'...\'',
             $query
         );
     }

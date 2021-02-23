@@ -55,14 +55,21 @@ class StagingStorageLoader
             }
         }
 
-        // Upload
+        // Create bucket
         $filePath = $this->getInputCsv($tableId);
         $bucketId = 'test-wr-db-synapse';
+        $fullTableId = 'in.c-' . $bucketId . '.' . $tableId;
         if (!$this->storageApi->bucketExists('in.c-' . $bucketId)) {
             $this->storageApi->createBucket($bucketId, Client::STAGE_IN);
         }
 
+        // Create table
+        if ($this->storageApi->tableExists($fullTableId)) {
+            $this->storageApi->dropTable($fullTableId);
+        }
         $sourceTableId = $this->storageApi->createTable('in.c-' .$bucketId, $tableId, new CsvFile($filePath));
+
+        // Upload
         $this->storageApi->writeTable($sourceTableId, new CsvFile($filePath));
         $job = $this->storageApi->exportTableAsync($sourceTableId, ['gzip' => true]);
         $fileInfo = $this->storageApi->getFile(
