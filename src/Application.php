@@ -121,7 +121,7 @@ class Application extends BaseApplication
         $stageTable = $tableConfig;
         $stageTable['dbName'] = $writer->generateStageName($tableConfig['dbName']);
         $writer->drop($stageTable['dbName']);
-        $writer->createStaging($stageTable);
+        $writer->create($stageTable);
 
         try {
             // create target table

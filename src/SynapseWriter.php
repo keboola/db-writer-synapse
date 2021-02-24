@@ -80,17 +80,50 @@ class SynapseWriter extends Writer implements WriterInterface
         return $pdo;
     }
 
-    public function createStaging(array $table): void
+    public function create(array $table): void
     {
-        $sqlDefinitions = [$this->getColumnsSqlDefinition($table)];
-        if (!empty($table['primaryKey'])) {
-            //$sqlDefinitions [] = $this->getPrimaryKeySqlDefinition($table['primaryKey']);
+        $with = [];
+        $primaryKey = $table['primaryKey'] ?? [];
+        if (count($primaryKey) === 1) {
+            $with[] = sprintf(
+                'DISTRIBUTION = HASH(%s)',
+                SynapseWriter::quoteIdentifier($table['primaryKey'][0])
+            );
         }
 
+        if (count($primaryKey) > 0) {
+            $with[] = sprintf(
+                'CLUSTERED INDEX (%s)',
+                implode(', ', array_map(
+                    fn(string $column) => SynapseWriter::quoteIdentifier((string) $column),
+                    $primaryKey
+                ))
+            );
+        }
+
+        $withSql = $with ? sprintf(' WITH (%s)', implode(', ', $with)) : '';
+        $this->execQuery(sprintf(
+            'CREATE TABLE %s (%s)%s;',
+            $this->nameWithSchemaEscaped($table['dbName']),
+            $this->getColumnsSqlDefinition($table),
+            $withSql,
+        ));
+    }
+
+    public function createIfNotExists(array $table): void
+    {
+        if ($this->tableExists($table['dbName'])) {
+            return;
+        }
+        $this->create($table);
+    }
+
+    public function createStaging(array $table): void
+    {
         $this->execQuery(sprintf(
             'CREATE TABLE %s (%s);',
             $this->nameWithSchemaEscaped($table['dbName']),
-            implode(', ', $sqlDefinitions)
+            $this->getColumnsSqlDefinition($table)
         ));
     }
 
@@ -133,28 +166,6 @@ class SynapseWriter extends Writer implements WriterInterface
         ));
     }
 
-    public function create(array $table): void
-    {
-        $sqlDefinitions = [$this->getColumnsSqlDefinition($table)];
-        if (!empty($table['primaryKey'])) {
-            //$sqlDefinitions [] = $this->getPrimaryKeySqlDefinition($table['primaryKey']);
-        }
-
-        $this->execQuery(sprintf(
-            'CREATE TABLE %s (%s);',
-            $this->nameWithSchemaEscaped($table['dbName']),
-            implode(', ', $sqlDefinitions)
-        ));
-    }
-
-    public function createIfNotExists(array $table): void
-    {
-        if ($this->tableExists($table['dbName'])) {
-            return;
-        }
-        $this->create($table);
-    }
-
     public function swapTables(string $table1, string $table2): void
     {
         $sql = [];
@@ -179,13 +190,6 @@ class SynapseWriter extends Writer implements WriterInterface
 
     public function upsert(array $table, string $targetTable): void
     {
-        if (!empty($table['primaryKey'])) {
-            $this->addPrimaryKeyIfMissing($table['primaryKey'], $targetTable);
-
-            // check primary keys
-            $this->checkPrimaryKey($table['primaryKey'], $targetTable);
-        }
-
         $tempTable = $this->nameWithSchemaEscaped($table['dbName']);
         $targetTable = $this->nameWithSchemaEscaped($targetTable);
 
@@ -331,39 +335,6 @@ class SynapseWriter extends Writer implements WriterInterface
         return $this->fetchAll('SELECT CURRENT_USER;')[0]['CURRENT_USER'];
     }
 
-    public function checkPrimaryKey(array $columns, string $targetTable): void
-    {
-//        $primaryKeysInDb = $this->db->getTablePrimaryKey($this->dbParams['schema'], $targetTable);
-//
-//        sort($primaryKeysInDb);
-//        sort($columns);
-//
-//        if ($primaryKeysInDb !== $columns) {
-//            throw new UserException(sprintf(
-//                'Primary key(s) in configuration does NOT match with keys in DB table.' . PHP_EOL
-//                . 'Keys in configuration: %s' . PHP_EOL
-//                . 'Keys in DB table: %s',
-//                implode(',', $columns),
-//                implode(',', $primaryKeysInDb)
-//            ));
-//        }
-    }
-
-    private function addPrimaryKeyIfMissing(array $columns, string $targetTable): void
-    {
-//        $primaryKeysInDb = $this->db->getTablePrimaryKey($this->dbParams['schema'], $targetTable);
-//        if (!empty($primaryKeysInDb)) {
-//            return;
-//        }
-//
-//        $sql = sprintf(
-//            'ALTER TABLE %s ADD %s;',
-//            $this->nameWithSchemaEscaped($targetTable),
-//            $this->getPrimaryKeySqlDefinition($columns)
-//        );
-//
-//        $this->execQuery($sql);
-    }
 
     private function getColumnsSqlDefinition(array $table): string
     {
@@ -394,25 +365,6 @@ class SynapseWriter extends Writer implements WriterInterface
 
         return trim($sql, ' ,');
     }
-
-//    private function getPrimaryKeySqlDefinition(array $primaryColumns): string
-//    {
-//        return '';
-////        $writer = $this;
-////
-////        return sprintf(
-////            'PRIMARY KEY(%s)',
-////            implode(
-////                ', ',
-////                array_map(
-////                    function ($primaryColumn) use ($writer) {
-////                        return $writer->quoteIdentifier($primaryColumn);
-////                    },
-////                    $primaryColumns
-////                )
-////            )
-////        );
-//    }
 
     private function hideCredentialsInQuery(string $query): ?string
     {
