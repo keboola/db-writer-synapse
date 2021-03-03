@@ -1,0 +1,7 @@
+Connecting to DSN 'sqlsrv:Server=tcp:%A'
+Executing query 'IF OBJECT_ID(N'"dbo"."_db_writer_stage_simple"', N'U') IS NOT NULL DROP TABLE "dbo"."_db_writer_stage_simple";'
+Executing query 'CREATE TABLE "dbo"."_db_writer_stage_simple" ("id" INT NOT NULL ,"name" VARCHAR(255) NOT NULL ,"date" DATETIME NULL) WITH (DISTRIBUTION = HASH("id"), CLUSTERED INDEX ("id"));'
+Executing query 'COPY INTO "dbo"."_db_writer_stage_simple" FROM %A WITH (FILE_TYPE='CSV', CREDENTIAL=(IDENTITY='Shared Access Signature', SECRET='...'), FIELDQUOTE='"', FIELDTERMINATOR=',', ENCODING = 'UTF8', ROWTERMINATOR='0x0A', IDENTITY_INSERT = 'OFF');'
+Executing query 'RENAME OBJECT "dbo"."simple" TO "simple_old"; RENAME OBJECT "dbo"."_db_writer_stage_simple" TO "simple"; RENAME OBJECT "dbo"."simple_old" TO "_db_writer_stage_simple";'
+Executing query 'IF OBJECT_ID(N'"dbo"."_db_writer_stage_simple"', N'U') IS NOT NULL DROP TABLE "dbo"."_db_writer_stage_simple";'
+Writer finished successfully

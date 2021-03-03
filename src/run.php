@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-use Keboola\Component\UserException;
+use Keboola\DbWriter\Synapse\Application;
+use Keboola\CommonExceptions\UserExceptionInterface;
 use Keboola\Component\Logger;
-use MyComponent\Component;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 $logger = new Logger();
 try {
-    $app = new Component($logger);
-    $app->execute();
+    $app = new Application($logger);
+    echo $app->run();
     exit(0);
-} catch (UserException $e) {
+} catch (UserExceptionInterface $e) {
     $logger->error($e->getMessage());
     exit(1);
 } catch (\Throwable $e) {

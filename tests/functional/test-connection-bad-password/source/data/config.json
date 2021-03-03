@@ -1,0 +1,12 @@
+{
+  "action": "testConnection",
+  "parameters": {
+    "db": {
+      "host": "%env(string:SYNAPSE_SERVER)%",
+      "port": "%env(int:SYNAPSE_PORT)%",
+      "user": "%env(string:SYNAPSE_UID)%",
+      "#password": "bad-password",
+      "database": "%env(string:SYNAPSE_DATABASE)%"
+    }
+  }
+}
