@@ -1,0 +1,42 @@
+{
+      "name": "incremental",
+      "schema": "dbo",
+      "columns": [
+            {
+                  "name": "id",
+                  "position": "1",
+                  "type": "int",
+                  "is_nullable": false,
+                  "default": null,
+                  "char_max_length": null,
+                  "char_octet_length": null,
+                  "numeric_precision": "10",
+                  "numeric_precision_radix": "10",
+                  "numeric_scale": "0"
+            },
+            {
+                  "name": "value",
+                  "position": "2",
+                  "type": "varchar",
+                  "is_nullable": false,
+                  "default": null,
+                  "char_max_length": "255",
+                  "char_octet_length": "255",
+                  "numeric_precision": null,
+                  "numeric_precision_radix": null,
+                  "numeric_scale": null
+            },
+            {
+                  "name": "second_value",
+                  "position": "3",
+                  "type": "varchar",
+                  "is_nullable": false,
+                  "default": null,
+                  "char_max_length": "255",
+                  "char_octet_length": "255",
+                  "numeric_precision": null,
+                  "numeric_precision_radix": null,
+                  "numeric_scale": null
+            }
+      ]
+}

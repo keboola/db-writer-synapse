@@ -1,0 +1,42 @@
+{
+  "parameters": {
+    "db": {
+      "host": "%env(string:SYNAPSE_SERVER)%",
+      "port": "%env(int:SYNAPSE_PORT)%",
+      "user": "%env(string:SYNAPSE_UID)%",
+      "#password": "%env(string:SYNAPSE_PWD)%",
+      "database": "%env(string:SYNAPSE_DATABASE)%"
+    },
+    "tableId": "simple",
+    "dbName": "simple",
+    "primaryKey": [
+      "date",
+      "id"
+    ],
+    "items": [
+      {
+        "name": "id",
+        "dbName": "id",
+        "type": "int",
+        "size": null,
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "name",
+        "dbName": "name",
+        "type": "varchar",
+        "size": 255,
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "date_csv",
+        "dbName": "date",
+        "type": "datetime",
+        "nullable": true,
+        "default": null
+      }
+    ]
+  }
+}
