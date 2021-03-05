@@ -135,15 +135,15 @@ class Application extends BaseApplication
 
     private function getManifest(string $tableId): array
     {
-        $tablePath = $this['parameters']['data_dir'] . '/in/tables/' . $tableId . '.csv.manifest';
-        if (!file_exists($tablePath)) {
+        $tableManifestPath = $this['parameters']['data_dir'] . '/in/tables/' . $tableId . '.csv.manifest';
+        if (!file_exists($tableManifestPath)) {
             throw new UserException(sprintf(
                 'Table "%s" in storage input mapping cannot be found.',
                 $tableId
             ));
         }
         return json_decode(
-            (string) file_get_contents($tablePath),
+            (string) file_get_contents($tableManifestPath),
             true
         );
     }
