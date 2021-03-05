@@ -14,7 +14,7 @@ class ConfigTest extends TestCase
     /**
      * @dataProvider validConfigDataProvider
      */
-    public function testValid(array $configData, array $expectedConfig): void
+    public function testValidConfig(array $configData, array $expectedConfig): void
     {
         $validator = Validator::getValidator(new ConfigRowDefinition());
         $parameters = $validator($configData);
@@ -29,6 +29,13 @@ class ConfigTest extends TestCase
                 'data_dir' => 'data/dir',
                 'tableId' => 'test-table-id',
                 'dbName' => 'db-table-name',
+                'db' => [
+                    'host' => 'test-host',
+                    'port' => 1234,
+                    'user' => 'test-user',
+                    '#password' => 'test-pass',
+                    'database' => 'test-db',
+                ],
             ],
             [
                 'data_dir' => 'data/dir',
@@ -38,6 +45,15 @@ class ConfigTest extends TestCase
                 'export' => true,
                 'primaryKey' => [],
                 'items' => [],
+                'db' => [
+                    'host' => 'test-host',
+                    'port' => 1234,
+                    'user' => 'test-user',
+                    '#password' => 'test-pass',
+                    'database' => 'test-db',
+                    'schema' => 'dbo',
+                    'password' => 'test-pass',
+                ],
             ],
         ];
 
