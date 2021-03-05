@@ -88,7 +88,7 @@ trait DumpTablesTrait
         ));
 
         /** @var array $result */
-        $result = $stmt->fetchAll();
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map(function (array $column) {
             return [
