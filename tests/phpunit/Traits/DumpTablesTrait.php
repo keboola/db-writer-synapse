@@ -41,14 +41,20 @@ trait DumpTablesTrait
             $columns
         ));
 
-        // Write data, order by first column
+        $orderColumns = [SynapseWriter::quoteIdentifier($columns[0]['name'])];
+        // order by first two columns
+        if (isset($columns[1])) {
+            $orderColumns[] = SynapseWriter::quoteIdentifier($columns[1]['name']);
+        }
+
+        // Write data
         /** @var \PDOStatement $stmt */
         $stmt = $this->getConnection()->query(sprintf(
             'SELECT * FROM %s.%s.%s ORDER BY %s',
             SynapseWriter::quoteIdentifier($catalog),
             SynapseWriter::quoteIdentifier($schema),
             SynapseWriter::quoteIdentifier($name),
-            SynapseWriter::quoteIdentifier($columns[0]['name'])
+            implode(', ', $orderColumns)
         ));
         /** @var array $rows */
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
