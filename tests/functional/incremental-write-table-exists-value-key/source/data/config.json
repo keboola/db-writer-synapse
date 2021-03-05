@@ -1,0 +1,43 @@
+{
+  "parameters": {
+    "db": {
+      "host": "%env(string:SYNAPSE_SERVER)%",
+      "port": "%env(int:SYNAPSE_PORT)%",
+      "user": "%env(string:SYNAPSE_UID)%",
+      "#password": "%env(string:SYNAPSE_PWD)%",
+      "database": "%env(string:SYNAPSE_DATABASE)%"
+    },
+    "incremental": true,
+    "tableId": "incremental",
+    "dbName": "incremental",
+    "primaryKey": [
+      "value"
+    ],
+    "items": [
+      {
+        "name": "id",
+        "dbName": "id",
+        "type": "int",
+        "size": null,
+        "nullable": null,
+        "default": null
+      },
+      {
+        "name": "value",
+        "dbName": "value",
+        "type": "varchar",
+        "size": 255,
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "second_value",
+        "dbName": "second_value",
+        "type": "varchar",
+        "size": 255,
+        "nullable": false,
+        "default": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "simple",
+  "columns": [
+    "id",
+    "value",
+    "second_value"
+  ]
+}

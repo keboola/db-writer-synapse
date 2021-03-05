@@ -1,0 +1,3 @@
+Connecting to DSN 'sqlsrv:Server=tcp:synapse-writer-ci-server-sql-wlmb7kddwhi22.database.windows.net,1433;Database=synapse-writer-ci-server-db-wlmb7kddwhi22'
+Executing query 'IF OBJECT_ID(N'"dbo"."_db_writer_stage_simple"', N'U') IS NOT NULL DROP TABLE "dbo"."_db_writer_stage_simple";'
+Executing query 'CREATE TABLE "dbo"."_db_writer_stage_simple" ("id" INT NOT NULL ,"name" VARCHAR(255) NOT NULL ,"date" DATETIME NULL) WITH (DISTRIBUTION = HASH("unexists"), CLUSTERED INDEX ("unexists"));'

@@ -14,6 +14,7 @@ class DbNode extends ArrayNodeDefinition
     public function __construct()
     {
         parent::__construct(self::NODE_NAME);
+        $this->isRequired();
         $this->init($this->children());
     }
 
