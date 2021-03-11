@@ -6,6 +6,7 @@ namespace Keboola\DbWriter\Synapse\Configuration;
 
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 class DbNode extends ArrayNodeDefinition
 {
@@ -14,6 +15,16 @@ class DbNode extends ArrayNodeDefinition
     public function __construct()
     {
         parent::__construct(self::NODE_NAME);
+        $this->validate()->always(function ($v) {
+            if (!is_numeric($v['port'])) {
+                throw new InvalidConfigurationException(sprintf(
+                    'Port "%s" has not a numeric value.',
+                    $v['port']
+                ));
+            }
+            $v['port'] = (int) $v['port'];
+            return $v;
+        })->end()->end();
         $this->isRequired();
         $this->init($this->children());
     }
@@ -24,7 +35,7 @@ class DbNode extends ArrayNodeDefinition
             ->scalarNode('host')
                 ->isRequired()
             ->end()
-            ->integerNode('port')
+            ->scalarNode('port')
                 ->defaultValue(1433)
             ->end()
             ->scalarNode('user')
