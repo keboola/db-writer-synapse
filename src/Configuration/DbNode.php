@@ -15,7 +15,7 @@ class DbNode extends ArrayNodeDefinition
     public function __construct()
     {
         parent::__construct(self::NODE_NAME);
-        $this->validate()->always(function($v) {
+        $this->validate()->always(function ($v) {
             if (!is_numeric($v['port'])) {
                 throw new InvalidConfigurationException(sprintf(
                     'Port "%s" has not a numeric value.',

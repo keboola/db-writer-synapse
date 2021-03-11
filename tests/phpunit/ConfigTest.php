@@ -77,7 +77,7 @@ class ConfigTest extends TestCase
                 'dbName' => 'db-table-name',
                 'db' => [
                     'host' => 'test-host',
-                    'port' => "1234",
+                    'port' => '1234',
                     'user' => 'test-user',
                     '#password' => 'test-pass',
                     'database' => 'test-db',
@@ -255,7 +255,7 @@ class ConfigTest extends TestCase
                 'tableId' => 'test-table-id',
                 'db' => [
                     'host' => 'test-host',
-                    'port' => "invalidPort",
+                    'port' => 'invalidPort',
                     'user' => 'test-user',
                     '#password' => 'test-pass',
                     'database' => 'test-db',
