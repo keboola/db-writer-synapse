@@ -28,36 +28,6 @@ Writes data to Azure Synapse Database
     - `nullable` - string (optional)
     - `default` - string (required)
 
-## Global config
-
-[Image or Stack Parameters](https://developers.keboola.com/extend/common-interface/config-file/#image-parameters)
-can be used to set global configuration for the extractor. This can be used if e.g. all configurations on the stack use the same Kerberos authentication.
-
-The global configuration is stored under key `image_parameters.global_config` and has HIGHER priority than the values in the `parameters`.
-
-Example of the configuration that the extractor gets:
-```
-{
-  "action": "testConnection",
-  "image_parameters": {
-    "global_config": {
-      "db": {
-        "host": "global-synapse-server"
-      }
-    }
-  },
-  "parameters": {
-    "db": {
-      "host": "synapse-server",
-      "port": 1433,
-      "user": "synapse-user",
-      "#password": "synapse-secret-password",
-      "database": "synapse-database"
-    }
-  }
-}
-```
-
 ## Examples
 
 Test connection:
