@@ -70,6 +70,39 @@ class ConfigTest extends TestCase
             ],
         ];
 
+        yield 'minimal-config-string-port' => [
+            [
+                'data_dir' => 'data/dir',
+                'tableId' => 'test-table-id',
+                'dbName' => 'db-table-name',
+                'db' => [
+                    'host' => 'test-host',
+                    'port' => "1234",
+                    'user' => 'test-user',
+                    '#password' => 'test-pass',
+                    'database' => 'test-db',
+                ],
+            ],
+            [
+                'data_dir' => 'data/dir',
+                'tableId' => 'test-table-id',
+                'dbName' => 'db-table-name',
+                'incremental' => false,
+                'export' => true,
+                'primaryKey' => [],
+                'items' => [],
+                'db' => [
+                    'host' => 'test-host',
+                    'port' => 1234,
+                    'user' => 'test-user',
+                    '#password' => 'test-pass',
+                    'database' => 'test-db',
+                    'schema' => 'dbo',
+                    'password' => 'test-pass',
+                ],
+            ],
+        ];
+
         yield 'full-config' => [
             [
                 'data_dir' => 'data/dir',
@@ -213,6 +246,22 @@ class ConfigTest extends TestCase
                 ],
             ],
             'The child config "dbName" under "parameters.items.0" must be configured.',
+        ];
+
+        yield 'invalid port value' => [
+            [
+                'data_dir' => 'data/dir',
+                'dbName' => 'db-table-name',
+                'tableId' => 'test-table-id',
+                'db' => [
+                    'host' => 'test-host',
+                    'port' => "invalidPort",
+                    'user' => 'test-user',
+                    '#password' => 'test-pass',
+                    'database' => 'test-db',
+                ],
+            ],
+            'Port "invalidPort" has not a numeric value.',
         ];
     }
 }
