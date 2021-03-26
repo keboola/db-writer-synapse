@@ -17,6 +17,7 @@ Writes data to Azure Synapse Database
   - `schema` - string (optional, default value `dbo`)
 - `tableId` - string (required)
 - `dbName` - string (required)
+- `absCredentialsType` - enum (optional): `sas` (default), `managed_identity`
 - `incremental` - boolean (optional, default value `false`)
 - `export` - boolean (optional, default value `true`)
 - `primaryKey` - array of string (optional)

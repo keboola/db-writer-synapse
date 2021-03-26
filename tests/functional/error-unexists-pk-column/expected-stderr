@@ -1,2 +1,1 @@
 Query execution error: SQLSTATE[42000]: [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Column name 'unexists' does not exist in the target table or view.
-Query execution error: SQLSTATE[42000]: [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Column name 'unexists' does not exist in the target table or view.

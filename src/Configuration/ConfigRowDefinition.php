@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbWriter\Synapse\Configuration;
 
-use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
+use Keboola\DbWriter\Synapse\Adapter\AbsAdapter;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -29,6 +29,10 @@ class ConfigRowDefinition implements ConfigurationInterface
                 ->scalarNode('dbName')
                     ->isRequired()
                     ->cannotBeEmpty()
+                ->end()
+                ->enumNode('absCredentialsType')
+                    ->values([AbsAdapter::CREDENTIALS_TYPE_SAS, AbsAdapter::CREDENTIALS_TYPE_MANAGED_IDENTITY])
+                    ->defaultValue(AbsAdapter::CREDENTIALS_TYPE_SAS)
                 ->end()
                 ->booleanNode('incremental')
                     ->defaultValue(false)
