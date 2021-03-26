@@ -18,6 +18,8 @@ class Application extends BaseApplication
 {
     public const STORAGE_ABS = 'abs';
 
+    private array $parameters;
+
     public function __construct(LoggerInterface $logger)
     {
         $dataDir = getenv('KBC_DATADIR') ?: '/data';
@@ -37,6 +39,7 @@ class Application extends BaseApplication
         }
 
         parent::__construct($config, $logger, $configDefinition);
+        $this->parameters = $this['parameters'];
 
         $app = $this;
         $this['writer_factory'] = function () use ($app) {
@@ -76,7 +79,6 @@ class Application extends BaseApplication
                 $this->writeFullFromAdapter($tableConfig, $adapter);
             }
         } catch (UserException $e) {
-            $this['logger']->error($e->getMessage());
             throw $e;
         }
 
@@ -151,7 +153,7 @@ class Application extends BaseApplication
     private function getAdapter(array $manifest): IAdapter
     {
         if (isset($manifest[self::STORAGE_ABS])) {
-            return new AbsAdapter($manifest[self::STORAGE_ABS]);
+            return new AbsAdapter($manifest[self::STORAGE_ABS], $this->parameters['absCredentialsType']);
         }
         throw new UserException('Unknown staging storage');
     }

@@ -6,6 +6,7 @@ namespace Keboola\DbWriter\Synapse\Tests;
 
 use Keboola\CommonExceptions\UserExceptionInterface;
 use Keboola\DbWriter\Configuration\Validator;
+use Keboola\DbWriter\Synapse\Adapter\AbsAdapter;
 use Keboola\DbWriter\Synapse\Configuration\ConfigRowDefinition;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
@@ -54,6 +55,7 @@ class ConfigTest extends TestCase
                 'data_dir' => 'data/dir',
                 'tableId' => 'test-table-id',
                 'dbName' => 'db-table-name',
+                'absCredentialsType' => AbsAdapter::CREDENTIALS_TYPE_SAS,
                 'incremental' => false,
                 'export' => true,
                 'primaryKey' => [],
@@ -87,6 +89,7 @@ class ConfigTest extends TestCase
                 'data_dir' => 'data/dir',
                 'tableId' => 'test-table-id',
                 'dbName' => 'db-table-name',
+                'absCredentialsType' => AbsAdapter::CREDENTIALS_TYPE_SAS,
                 'incremental' => false,
                 'export' => true,
                 'primaryKey' => [],
@@ -144,6 +147,7 @@ class ConfigTest extends TestCase
                 'tableId' => 'test-table-id',
                 'dbName' => 'db-table-name',
                 'incremental' => true,
+                'absCredentialsType' => AbsAdapter::CREDENTIALS_TYPE_SAS,
                 'export' => false,
                 'primaryKey' => [
                     'id',

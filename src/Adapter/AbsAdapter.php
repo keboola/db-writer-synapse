@@ -12,6 +12,9 @@ use MicrosoftAzure\Storage\Common\Internal\Resources;
 
 class AbsAdapter implements IAdapter
 {
+    public const CREDENTIALS_TYPE_SAS = 'sas';
+    public const CREDENTIALS_TYPE_MANAGED_IDENTITY = 'managed_identity';
+
     private bool $isSliced;
 
     private string $region;
@@ -26,7 +29,9 @@ class AbsAdapter implements IAdapter
 
     private string $expiration;
 
-    public function __construct(array $absInfo)
+    private string $credentialsType;
+
+    public function __construct(array $absInfo, string $credentialsType)
     {
         preg_match(
             '/BlobEndpoint=https?:\/\/(.+);SharedAccessSignature=(.+)/',
@@ -40,6 +45,7 @@ class AbsAdapter implements IAdapter
         $this->connectionEndpoint = $connectionInfo[1];
         $this->connectionAccessSignature = $connectionInfo[2];
         $this->expiration = $absInfo['credentials']['expiration'];
+        $this->credentialsType = $credentialsType;
     }
 
     public function generateImportToStageSql(string $escapedTableName): string
@@ -48,10 +54,7 @@ class AbsAdapter implements IAdapter
             return SynapseWriter::quote($entry);
         }, $this->getEntries());
         $entries = implode(', ', $entries);
-        $credentials = sprintf(
-            'IDENTITY=\'Shared Access Signature\', SECRET=\'?%s\'',
-            $this->connectionAccessSignature
-        );
+        $credentials = $this->getCredentials();
         $enclosure = SynapseWriter::quote('"');
         $fieldDelimiter = SynapseWriter::quote(',');
 
@@ -104,6 +107,26 @@ class AbsAdapter implements IAdapter
             }
             return str_replace('azure://', 'https://', $entry['url']);
         }, $manifest['entries']);
+    }
+
+    private function getCredentials(): string
+    {
+        switch ($this->credentialsType) {
+            case self::CREDENTIALS_TYPE_SAS:
+                return sprintf(
+                    'IDENTITY=\'Shared Access Signature\', SECRET=\'?%s\'',
+                    $this->connectionAccessSignature
+                );
+
+            case self::CREDENTIALS_TYPE_MANAGED_IDENTITY:
+                return 'IDENTITY=\'Managed Identity\'';
+
+            default:
+                throw new \InvalidArgumentException(sprintf(
+                    'Unknown credentials type "%s".',
+                    $this->credentialsType
+                ));
+        }
     }
 
     private function getContainerUrl(): string
