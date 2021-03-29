@@ -47,7 +47,6 @@ class ConfigTest extends TestCase
             json_encode(
                 [
                     'parameters' => [
-                        'absCredentialsType' =>AbsAdapter::CREDENTIALS_TYPE_SAS,
                         'data_dir' => 'data/dir',
                         'tableId' => 'test-table-id',
                         'dbName' => 'db-table-name',
