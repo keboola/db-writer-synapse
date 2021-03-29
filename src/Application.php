@@ -27,6 +27,11 @@ class Application extends BaseApplication
         $config['parameters'] = $config['parameters'] ?? [];
         $config['parameters']['data_dir'] = $dataDir;
 
+        if (isset($config['image_parameters']['global_config']['absCredentialsType'])) {
+            $config['parameters']['absCredentialsType'] =
+                $config['image_parameters']['global_config']['absCredentialsType'];
+        }
+
         $action = $config['action'] ?? 'run';
         if (isset($config['parameters']['tables'])) {
             throw new ApplicationException('Old config format is not supported. Please, use row configuration.');

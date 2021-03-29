@@ -7,9 +7,12 @@ namespace Keboola\DbWriter\Synapse\Tests;
 use Keboola\CommonExceptions\UserExceptionInterface;
 use Keboola\DbWriter\Configuration\Validator;
 use Keboola\DbWriter\Synapse\Adapter\AbsAdapter;
+use Keboola\DbWriter\Synapse\Application;
 use Keboola\DbWriter\Synapse\Configuration\ConfigRowDefinition;
+use Keboola\Temp\Temp;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 
 class ConfigTest extends TestCase
 {
@@ -34,6 +37,44 @@ class ConfigTest extends TestCase
         $this->expectException(UserExceptionInterface::class);
         $this->expectExceptionMessage($errorMessage);
         $validator($configData);
+    }
+
+    public function testReplaceConfigFromImageParams(): void
+    {
+        $tempDir = new Temp();
+        file_put_contents(
+            sprintf('%s/config.json', $tempDir->getTmpFolder()),
+            json_encode(
+                [
+                    'parameters' => [
+                        'absCredentialsType' =>AbsAdapter::CREDENTIALS_TYPE_SAS,
+                        'data_dir' => 'data/dir',
+                        'tableId' => 'test-table-id',
+                        'dbName' => 'db-table-name',
+                        'db' => [
+                            'host' => 'test-host',
+                            'port' => 1234,
+                            'user' => 'test-user',
+                            '#password' => 'test-pass',
+                            'database' => 'test-db',
+                        ],
+                    ],
+                    'image_parameters' => [
+                        'global_config' => [
+                            'absCredentialsType' => AbsAdapter::CREDENTIALS_TYPE_MANAGED_IDENTITY,
+                        ],
+                    ],
+                ]
+            )
+        );
+        putenv(sprintf('KBC_DATADIR=%s', $tempDir->getTmpFolder()));
+
+        $app = new Application(new NullLogger());
+
+        Assert::assertEquals(
+            AbsAdapter::CREDENTIALS_TYPE_MANAGED_IDENTITY,
+            $app['parameters']['absCredentialsType']
+        );
     }
 
     public function validConfigDataProvider(): iterable
