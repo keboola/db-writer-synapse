@@ -81,9 +81,8 @@ class ConfigTest extends TestCase
                     ],
                 ],
             ],
-            AbsAdapter::CREDENTIALS_TYPE_MANAGED_IDENTITY
+            AbsAdapter::CREDENTIALS_TYPE_MANAGED_IDENTITY,
         ];
-
 
         yield 'replaceValue' => [
             [
@@ -106,7 +105,7 @@ class ConfigTest extends TestCase
                     ],
                 ],
             ],
-            AbsAdapter::CREDENTIALS_TYPE_SAS
+            AbsAdapter::CREDENTIALS_TYPE_SAS,
         ];
     }
 
