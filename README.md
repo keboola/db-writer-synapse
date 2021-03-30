@@ -29,6 +29,35 @@ Writes data to Azure Synapse Database
     - `nullable` - string (optional)
     - `default` - string (required)
 
+## Global config
+
+Image or Stack Parameters can be used to set default value `absCredentialsType` to the writer. 
+
+The global configuration is stored under key `image_parameters.global_config.absCredentialsType` and has LOWER priority than the value in the `parameters`.
+
+Example for default `absCredentialsType` value:
+```json
+{
+  "parameters": {
+    "data_dir": "data/dir",
+    "tableId": "test-table-id",
+    "dbName": "db-table-name",
+    "db": {
+      "host": "synapse-server",
+      "port": 1433,
+      "user": "synapse-user",
+      "#password": "synapse-secret-password",
+      "database": "synapse-database"
+    }
+  },
+  "image_parameters": {
+    "global_config": {
+      "absCredentialsType": "managed_identity"
+    }
+  }
+}
+```
+
 ## Examples
 
 Test connection:

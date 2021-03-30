@@ -26,6 +26,11 @@ class Application extends BaseApplication
         $config = json_decode((string) file_get_contents($dataDir . '/config.json'), true);
         $config['parameters'] = $config['parameters'] ?? [];
         $config['parameters']['data_dir'] = $dataDir;
+        if (isset($config['image_parameters']['global_config']['absCredentialsType']) &&
+            empty($config['parameters']['absCredentialsType'])) {
+            $config['parameters']['absCredentialsType'] =
+                $config['image_parameters']['global_config']['absCredentialsType'];
+        }
 
         $action = $config['action'] ?? 'run';
         if (isset($config['parameters']['tables'])) {
