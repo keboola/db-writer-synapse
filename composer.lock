@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3feb38a837e6cc665eaf5a0c747e858c",
+    "content-hash": "3d89411a5cc3113fd9648480a0ade800",
     "packages": [
         {
             "name": "aws/aws-sdk-php",
@@ -495,6 +495,68 @@
                 "source": "https://github.com/keboola/php-component/tree/8.2.0"
             },
             "time": "2021-02-02T12:40:10+00:00"
+        },
+        {
+            "name": "keboola/php-file-storage-utils",
+            "version": "v0.2.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/keboola/php-file-storage-utils.git",
+                "reference": "26f50ac6611dbac8e2179df8af34f1d27062237a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/keboola/php-file-storage-utils/zipball/26f50ac6611dbac8e2179df8af34f1d27062237a",
+                "reference": "26f50ac6611dbac8e2179df8af34f1d27062237a",
+                "shasum": ""
+            },
+            "require": {
+                "ext-fileinfo": "*",
+                "guzzlehttp/guzzle": "^6.5|^7.2",
+                "guzzlehttp/psr7": "^1.7.0",
+                "microsoft/azure-storage-blob": "^1.5",
+                "php": ">=7.1",
+                "psr/log": "^1.1",
+                "symfony/process": "^4.4|^5.0"
+            },
+            "require-dev": {
+                "keboola/coding-standard": "^9.0",
+                "php-parallel-lint/php-parallel-lint": "^1.2",
+                "phpstan/extension-installer": "^1.0",
+                "phpstan/phpstan": "^0.12.54",
+                "phpstan/phpstan-phpunit": "^0.12.16",
+                "phpunit/phpunit": "^7"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Keboola\\FileStorage\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Keboola",
+                    "email": "devel@keboola.com"
+                }
+            ],
+            "description": "Set of helpers and abstractions above file storage providers",
+            "keywords": [
+                "aws",
+                "azure",
+                "blob",
+                "keboola",
+                "s3",
+                "storage"
+            ],
+            "support": {
+                "issues": "https://github.com/keboola/php-file-storage-utils/issues",
+                "source": "https://github.com/keboola/php-file-storage-utils/tree/v0.2.1"
+            },
+            "time": "2021-07-07T11:14:50+00:00"
         },
         {
             "name": "keboola/ssh-tunnel",
