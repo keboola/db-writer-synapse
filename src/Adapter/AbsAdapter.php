@@ -6,6 +6,7 @@ namespace Keboola\DbWriter\Synapse\Adapter;
 
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Synapse\SynapseWriter;
+use Keboola\FileStorage\Abs\RetryMiddlewareFactory;
 use MicrosoftAzure\Storage\Blob\BlobRestProxy;
 use MicrosoftAzure\Storage\Common\Exceptions\ServiceException;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
@@ -77,6 +78,7 @@ class AbsAdapter implements IAdapter
         );
 
         $blobClient = BlobRestProxy::createBlobService($sasConnectionString);
+        $blobClient->pushMiddleware(RetryMiddlewareFactory::create());
         if (!$this->isSliced) {
             // this is temporary solution copy into is not failing when blob not exists
             try {
