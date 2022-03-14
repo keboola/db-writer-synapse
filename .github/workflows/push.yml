@@ -1,0 +1,137 @@
+name: 'GitHub Actions'
+'on':
+  - push
+concurrency: 'ci-${{ github.ref }}'
+env:
+  APP_IMAGE: keboola-component
+  KBC_DEVELOPERPORTAL_VENDOR: keboola
+  KBC_DEVELOPERPORTAL_APP: keboola.wr-synapse
+  KBC_DEVELOPERPORTAL_USERNAME: keboola+wr_synapse_github_actions
+  KBC_DEVELOPERPORTAL_PASSWORD: '${{ secrets.KBC_DEVELOPERPORTAL_PASSWORD }}'
+
+  AZURE_RESOURCE_GROUP: synapse-writer-ci
+  AZURE_SERVICE_PRINCIPAL: '${{ secrets.AZURE_SERVICE_PRINCIPAL }}'
+  AZURE_SERVICE_PRINCIPAL_PASSWORD: '${{ secrets.AZURE_SERVICE_PRINCIPAL_PASSWORD }}'
+  AZURE_SERVICE_PRINCIPAL_TENANT: '${{ secrets.AZURE_SERVICE_PRINCIPAL_TENANT }}'
+  SERVICE_PRINCIPAL_NAME: ci-db-writer-synapse
+  SYNAPSE_PORT: 1433
+  SYNAPSE_SERVER_NAME: synapse-writer-ci-server
+
+  DOCKERHUB_USER: '${{ secrets.DOCKERHUB_USER }}'
+  DOCKERHUB_TOKEN: '${{ secrets.DOCKERHUB_TOKEN }}'
+  KBC_STORAGE_TOKEN: '${{ secrets.KBC_STORAGE_TOKEN }}'
+
+  KBC_URL: https://connection.eu-central-1.keboola.com
+  KBC_PROJECT: https://connection.eu-central-1.keboola.com/admin/projects/2835/storage-explorer
+  KBC_RUNID: test-run-dev
+  STORAGE_API_TOKEN: '${{ secrets.STORAGE_API_TOKEN }}'
+
+  KBC_TEST_PROJECT_URL: ''
+  KBC_TEST_PROJECT_CONFIGS: ''
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      app_image_tag: '${{ steps.tag.outputs.app_image_tag }}'
+      is_semantic_tag: '${{ steps.tag.outputs.is_semantic_tag }}'
+    steps:
+      -
+        name: 'Check out the repo'
+        uses: actions/checkout@v2
+      -
+        name: 'Print Docker version'
+        run: 'docker -v'
+      -
+        name: 'Docker login'
+        if: env.DOCKERHUB_TOKEN
+        run: 'docker login --username "$DOCKERHUB_USER" --password "$DOCKERHUB_TOKEN"'
+      -
+        name: 'Build image'
+        run: 'docker build -t $APP_IMAGE .'
+      -
+        name: 'Set image tag'
+        id: tag
+        run: |
+          TAG="${GITHUB_REF##*/}"
+          IS_SEMANTIC_TAG=$(echo "$TAG" | grep -q '^v\?[0-9]\+\.[0-9]\+\.[0-9]\+$' && echo true || echo false)
+          echo "Tag = '$TAG', is semantic tag = '$IS_SEMANTIC_TAG'"
+          echo "::set-output name=app_image_tag::$TAG"
+          echo "::set-output name=is_semantic_tag::$IS_SEMANTIC_TAG"
+      -
+        name: 'Push image to ECR'
+        uses: keboola/action-push-to-ecr@master
+        with:
+          vendor: '${{ env.KBC_DEVELOPERPORTAL_VENDOR }}'
+          app_id: '${{ env.KBC_DEVELOPERPORTAL_APP }}'
+          username: '${{ env.KBC_DEVELOPERPORTAL_USERNAME }}'
+          password: '${{ env.KBC_DEVELOPERPORTAL_PASSWORD }}'
+          tag: '${{ steps.tag.outputs.app_image_tag }}'
+          push_latest: '${{ steps.tag.outputs.is_semantic_tag }}'
+          source_image: '${{ env.APP_IMAGE}}'
+  tests:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: 'Check out the repo'
+        uses: actions/checkout@v2
+      -
+        name: 'Pull image from ECR'
+        uses: keboola/action-pull-from-ecr@master
+        with:
+          vendor: '${{ env.KBC_DEVELOPERPORTAL_VENDOR }}'
+          app_id: '${{ env.KBC_DEVELOPERPORTAL_APP }}'
+          username: '${{ env.KBC_DEVELOPERPORTAL_USERNAME }}'
+          password: '${{ env.KBC_DEVELOPERPORTAL_PASSWORD }}'
+          tag: '${{ needs.build.outputs.app_image_tag }}'
+          target_image: '${{ env.APP_IMAGE}}'
+          tag_as_latest: true
+      -
+        name: 'Create synapse server'
+        run: |
+          SYNAPSE_ENV=`./provisioning/synapse/synapse.sh -c` \
+          && export $(echo ${SYNAPSE_ENV} | xargs) \
+          && echo "::add-mask::$SYNAPSE_PWD" \
+          && echo "SYNAPSE_UID=$SYNAPSE_UID" >> $GITHUB_ENV \
+          && echo "SYNAPSE_PWD=$SYNAPSE_PWD" >> $GITHUB_ENV \
+          && echo "SYNAPSE_SQL_SERVER_NAME=$SYNAPSE_SQL_SERVER_NAME" >> $GITHUB_ENV \
+          && echo "SYNAPSE_DW_SERVER_NAME=$SYNAPSE_DW_SERVER_NAME" >> $GITHUB_ENV \
+          && echo "SYNAPSE_SERVER=$SYNAPSE_SERVER" >> $GITHUB_ENV \
+          && echo "SYNAPSE_DATABASE=$SYNAPSE_DATABASE" >> $GITHUB_ENV
+      -
+        name: 'Run tests'
+        run: |
+          docker run \
+          -e KBC_URL \
+          -e KBC_RUNID \
+          -e STORAGE_API_TOKEN \
+          -e SYNAPSE_PORT \
+          -e SYNAPSE_SERVER_NAME \
+          -e SYNAPSE_UID \
+          -e SYNAPSE_PWD \
+          -e SYNAPSE_SQL_SERVER_NAME \
+          -e SYNAPSE_DW_SERVER_NAME \
+          -e SYNAPSE_SERVER \
+          -e SYNAPSE_DATABASE \
+          ${{env.APP_IMAGE}} composer ci
+      -
+        name: 'Delete synapse'
+        if: always()
+        run: './provisioning/synapse/synapse.sh -d'
+
+  deploy:
+    needs:
+      - build
+      - tests
+    runs-on: ubuntu-latest
+    if: 'startsWith(github.ref, ''refs/tags/'') && needs.build.outputs.is_semantic_tag == ''true'''
+    steps:
+      -
+        name: 'Set tag in the Developer Portal'
+        uses: keboola/action-set-tag-developer-portal@master
+        with:
+          vendor: '${{ env.KBC_DEVELOPERPORTAL_VENDOR }}'
+          app_id: '${{ env.KBC_DEVELOPERPORTAL_APP }}'
+          username: '${{ env.KBC_DEVELOPERPORTAL_USERNAME }}'
+          password: '${{ env.KBC_DEVELOPERPORTAL_PASSWORD }}'
+          tag: '${{ needs.build.outputs.app_image_tag }}'

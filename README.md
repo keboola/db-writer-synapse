@@ -1,6 +1,5 @@
 # Azure Synapse DB writer
 
-[![Build Status](https://travis-ci.com/keboola/db-writer-synapse.svg?branch=master)](https://travis-ci.com/keboola/db-writer-synapse)
 
 Writes data to Azure Synapse Database
 
