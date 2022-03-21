@@ -9,6 +9,7 @@ use SplFileInfo;
 use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Synapse\Adapter\IAdapter;
+use Keboola\DbWriter\Synapse\Adapter\NoEntriesException;
 use Keboola\DbWriter\Writer;
 use Keboola\DbWriter\WriterInterface;
 use Psr\Log\LoggerInterface;
@@ -130,7 +131,12 @@ class SynapseWriter extends Writer implements WriterInterface
     public function writeFromAdapter(array $stageTable): void
     {
         $escapedTableName = $this->nameWithSchemaEscaped($stageTable['dbName']);
-        $this->execQuery($this->adapter->generateImportToStageSql($escapedTableName));
+
+        try {
+            $this->execQuery($this->adapter->generateImportToStageSql($escapedTableName));
+        } catch (NoEntriesException $e) {
+            $this->logger->warning('There is nothing to write.');
+        }
     }
 
     protected function nameWithSchemaEscaped(string $tableName, ?string $schemaName = null): string

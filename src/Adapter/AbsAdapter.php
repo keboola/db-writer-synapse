@@ -54,6 +54,11 @@ class AbsAdapter implements IAdapter
         $entries = array_map(function ($entry) {
             return SynapseWriter::quote($entry);
         }, $this->getEntries());
+
+        if (empty($entries)) {
+            throw new NoEntriesException();
+        }
+
         $entries = implode(', ', $entries);
         $credentials = $this->getCredentials();
         $enclosure = SynapseWriter::quote('"');
