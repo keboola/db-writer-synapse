@@ -116,8 +116,8 @@ Script for starting azure synapse.
 
  Options:
   -h|--help                Print this
-  -d|--delete              Create server
-  -c|--create              Delete server
+  -c|--create              Create server
+  -d|--delete              Delete server
 
 To auto-export ENV variables, after creating the server, run:
 SYNAPSE_ENV=`./provisioning/synapse/synapse.sh -c` && export $(echo ${SYNAPSE_ENV} | xargs)
