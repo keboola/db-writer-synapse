@@ -1,4 +1,5 @@
 Connecting to DSN 'sqlsrv:Server=tcp:%A'
+DB Version - "Microsoft Azure SQL Data Warehouse - %A Copyright (c) Microsoft Corporation".
 Executing query 'IF OBJECT_ID(N'"dbo"."_db_writer_stage_simple"', N'U') IS NOT NULL DROP TABLE "dbo"."_db_writer_stage_simple";'
 Executing query 'CREATE TABLE "dbo"."_db_writer_stage_simple" ("id" INT NOT NULL ,"name" VARCHAR(255) NOT NULL ,"date" DATETIME NULL) WITH (CLUSTERED INDEX ("date", "id"));'
 Executing query 'CREATE TABLE "dbo"."simple" ("id" INT NOT NULL ,"name" VARCHAR(255) NOT NULL ,"date" DATETIME NULL) WITH (CLUSTERED INDEX ("date", "id"));'
