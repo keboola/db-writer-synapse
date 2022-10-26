@@ -24,6 +24,7 @@ env:
   KBC_URL: https://connection.eu-central-1.keboola.com
   KBC_PROJECT: https://connection.eu-central-1.keboola.com/admin/projects/2835/storage-explorer
   KBC_RUNID: test-run-dev
+  KBC_PROJECTID: 12345
   STORAGE_API_TOKEN: '${{ secrets.STORAGE_API_TOKEN }}'
 
 jobs:
@@ -102,6 +103,7 @@ jobs:
           docker run \
           -e KBC_URL \
           -e KBC_RUNID \
+          -e KBC_PROJECTID \
           -e STORAGE_API_TOKEN \
           -e SYNAPSE_PORT \
           -e SYNAPSE_SERVER_NAME \
