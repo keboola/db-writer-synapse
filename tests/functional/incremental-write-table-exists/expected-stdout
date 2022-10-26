@@ -1,4 +1,5 @@
 Connecting to DSN 'sqlsrv:Server=tcp:%A'
+DB Version - "Microsoft Azure SQL Data Warehouse - %A Copyright (c) Microsoft Corporation".
 Executing query 'CREATE TABLE "dbo"."#_db_writer_temp_incremental" ("id" INT NOT NULL ,"value" VARCHAR(255) NOT NULL ,"second_value" VARCHAR(255) NOT NULL);'
 Executing query 'COPY INTO "dbo"."#_db_writer_temp_incremental" FROM %A WITH (FILE_TYPE='CSV', CREDENTIAL=(IDENTITY='Shared Access Signature', SECRET='...'), FIELDQUOTE='"', FIELDTERMINATOR=',', ENCODING = 'UTF8', ROWTERMINATOR='0x0A', IDENTITY_INSERT = 'OFF');'
 Executing query 'UPDATE target SET "id"=temp."id","value"=temp."value","second_value"=temp."second_value" FROM "dbo"."incremental" AS target INNER JOIN "dbo"."#_db_writer_temp_incremental" AS temp ON target."id"=temp."id"'

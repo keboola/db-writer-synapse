@@ -78,6 +78,14 @@ class SynapseWriter extends Writer implements WriterInterface
         ]);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+        $query = $pdo->query('SELECT @@VERSION');
+
+        if ($query) {
+            $version = $query->fetch();
+
+            $this->logger->info(sprintf('DB Version - "%s".', $version[0]));
+        }
+
         return $pdo;
     }
 
