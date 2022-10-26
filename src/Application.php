@@ -78,11 +78,21 @@ class Application extends BaseApplication
 
         try {
             $adapter = $this->getAdapter($manifest);
+
+            /** @var SynapseWriter $writer */
+            $writer = $this['writer_factory']->create($this['logger'], $adapter);
+
+            $defaultWlmContext = sprintf('%s-writer', getenv('KBC_PROJECTID'));
+            $wlmContext = $this['authorization']['context'] ?? $defaultWlmContext;
+            $writer->setWlmContext($wlmContext);
+
             if (isset($tableConfig['incremental']) && $tableConfig['incremental']) {
-                $this->writeIncrementalFromAdapter($tableConfig, $adapter);
+                $this->writeIncrementalFromAdapter($writer, $tableConfig);
             } else {
-                $this->writeFullFromAdapter($tableConfig, $adapter);
+                $this->writeFullFromAdapter($writer, $tableConfig);
             }
+
+            $writer->setWlmContext();
         } catch (UserException $e) {
             throw $e;
         }
@@ -100,11 +110,8 @@ class Application extends BaseApplication
         throw new ApplicationException('Method not implemented');
     }
 
-    public function writeIncrementalFromAdapter(array $tableConfig, IAdapter $adapter): void
+    public function writeIncrementalFromAdapter(SynapseWriter $writer, array $tableConfig): void
     {
-        /** @var SynapseWriter $writer */
-        $writer = $this['writer_factory']->create($this['logger'], $adapter);
-
         // create staging table
         $stageTable = $tableConfig;
         $stageTable['dbName'] = $writer->generateTmpName($tableConfig['dbName']);
@@ -119,11 +126,8 @@ class Application extends BaseApplication
         $writer->upsert($stageTable, $tableConfig['dbName']);
     }
 
-    public function writeFullFromAdapter(array $tableConfig, IAdapter $adapter): void
+    public function writeFullFromAdapter(SynapseWriter $writer, array $tableConfig): void
     {
-        /** @var SynapseWriter $writer */
-        $writer = $this['writer_factory']->create($this['logger'], $adapter);
-
         // create staging table
         $stageTable = $tableConfig;
         $stageTable['dbName'] = $writer->generateStageName($tableConfig['dbName']);

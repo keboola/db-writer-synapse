@@ -397,4 +397,32 @@ class SynapseWriter extends Writer implements WriterInterface
     {
         throw new ApplicationException('Method not implemented');
     }
+
+    public function setWlmContext(?string $wlmContext = null): void
+    {
+        $sqlTemplate = <<<SQL
+ EXEC sys.sp_set_session_context @key = 'wlm_context', @value = %s;
+ SQL;
+
+        $sql = sprintf(
+            $sqlTemplate,
+            $wlmContext ? $this->db->quote($wlmContext) : 'null'
+        );
+
+        $query = $this->db->query($sql);
+        if (!$query) {
+            return;
+        }
+        $query->execute();
+
+        $query = $this->db->query("SELECT SESSION_CONTEXT(N'wlm_context') as context;");
+        if (!$query) {
+            return;
+        }
+        $savedWlmContext = $query->fetch(PDO::FETCH_ASSOC);
+
+        if ($wlmContext !== $savedWlmContext['context']) {
+            throw new UserException(sprintf('WLM Context "%s" cannot be set.', $wlmContext));
+        }
+    }
 }

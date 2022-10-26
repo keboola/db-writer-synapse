@@ -8,6 +8,7 @@ services:
     environment:
       - KBC_URL
       - KBC_RUNID
+      - KBC_PROJECTID
       - STORAGE_API_TOKEN
       - SYNAPSE_PORT
       - SYNAPSE_SERVER_NAME
