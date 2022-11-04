@@ -424,5 +424,7 @@ class SynapseWriter extends Writer implements WriterInterface
         if ($wlmContext !== $savedWlmContext['context']) {
             throw new UserException(sprintf('WLM Context "%s" cannot be set.', $wlmContext));
         }
+
+        $this->logger->info(sprintf('Using WLM context "%s".', $savedWlmContext['context']));
     }
 }
