@@ -44,6 +44,7 @@ class Application extends BaseApplication
         }
 
         parent::__construct($config, $logger, $configDefinition);
+        $this['authorization'] = $config['authorization'] ?? [];
         $this->parameters = $this['parameters'];
 
         $app = $this;
